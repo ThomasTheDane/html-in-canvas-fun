@@ -1,0 +1,968 @@
+/* ==========================================================================
+   THE RAINFOREST OF INFORMATION — PHOTOREALISTIC 3D & HTML-IN-CANVAS STYLES
+   ========================================================================== */
+
+:root {
+  --bg-deep-canopy: #020a05;
+  --bg-understory: #05160c;
+  --chlorophyll-glow: #64f596;
+  --sunbeam-gold: #f7d574;
+  --crimson-warning: #ff5a36;
+  --text-cream: #f4fbf2;
+  --text-sage: #bfdnc6;
+  --scroll-progress: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  background-color: var(--bg-deep-canopy);
+  color: var(--text-cream);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-deep-canopy);
+  color: var(--text-cream);
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   FIXED 3D STAGE & HTML-IN-CANVAS VIEWPORT
+   ========================================================================== */
+
+.stage-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  overflow: hidden;
+}
+
+#rainforest-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+/*
+ * Hit-testing & accessibility overlay container when native Chrome 157 `content="drawable"`
+ * is not enabled. The visual rendering is 100% on the 3D sculpted leaf mesh in WebGL;
+ * the DOM elements sit invisibly aligned over the 3D leaf surface to receive native
+ * pointer clicks, keyboard focus, and text input!
+ */
+.hic-fallback-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+
+.hic-fallback-layer .hic-leaf-card {
+  opacity: 0.001 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  caret-color: transparent;
+  user-select: none;
+}
+
+.hic-fallback-layer .hic-leaf-card * {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: transparent !important;
+}
+
+/* ==========================================================================
+   TOP BOTANICAL CANOPY HUD & QUICK-JUMP VINE NAVIGATION
+   ========================================================================== */
+
+.canopy-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(180deg, rgba(2, 11, 6, 0.9) 0%, rgba(4, 18, 10, 0.68) 82%, transparent 100%);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(100, 245, 150, 0.18);
+}
+
+.hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.hud-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #2a8a4e, #092915);
+  border: 1px solid rgba(116, 242, 156, 0.5);
+  box-shadow: 0 0 14px rgba(88, 235, 137, 0.32);
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.hud-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hud-eyebrow {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--chlorophyll-glow);
+  font-weight: 700;
+}
+
+.hud-stage-title {
+  font-size: 0.9rem;
+  color: var(--text-cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-vine-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.vine-node-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(114, 236, 151, 0.25);
+  background: rgba(6, 28, 16, 0.78);
+  color: #c2e3ca;
+  font-size: 0.73rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.vine-node-btn:hover {
+  background: rgba(24, 82, 46, 0.88);
+  border-color: var(--chlorophyll-glow);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.vine-node-btn.is-active {
+  background: linear-gradient(135deg, #1d7540 0%, #0d3d20 100%);
+  border-color: var(--sunbeam-gold);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(247, 213, 116, 0.35);
+}
+
+.vine-node-btn.node-fire.is-active {
+  background: linear-gradient(135deg, #9e2a14 0%, #4d1208 100%);
+  border-color: #ff8552;
+  box-shadow: 0 0 16px rgba(255, 98, 31, 0.55);
+}
+
+.node-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sunbeam-gold);
+}
+
+.node-dot.node-left {
+  background: #58eb89;
+}
+
+.node-dot.node-right {
+  background: #67d8ff;
+}
+
+.hud-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.68rem;
+  border-radius: 999px;
+  background: rgba(7, 30, 17, 0.85);
+  border: 1px solid rgba(114, 236, 151, 0.28);
+  font-size: 0.74rem;
+  color: var(--sunbeam-gold);
+  font-weight: 600;
+}
+
+.btn-hud-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.34rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 213, 116, 0.48);
+  background: rgba(34, 52, 18, 0.82);
+  color: var(--sunbeam-gold);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-hud-info:hover {
+  background: rgba(64, 92, 32, 0.95);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   BOTTOM VINE HELIX INDICATOR BAR
+   ========================================================================== */
+
+.canopy-footer-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 24;
+  padding: 0.42rem 1.25rem;
+  background: linear-gradient(0deg, rgba(2, 10, 5, 0.88) 0%, rgba(4, 17, 9, 0.55) 80%, transparent 100%);
+  pointer-events: none;
+}
+
+.vine-side-indicator {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.76rem;
+}
+
+.helix-pill {
+  padding: 0.22rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(8, 34, 19, 0.82);
+  border: 1px solid rgba(114, 236, 151, 0.3);
+  color: #c2e3ca;
+  font-weight: 600;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+.helix-pill.is-sprouting {
+  border-color: var(--sunbeam-gold);
+  color: #ffffff;
+  background: rgba(24, 88, 48, 0.95);
+  box-shadow: 0 0 18px rgba(88, 235, 137, 0.55);
+  transform: scale(1.05);
+}
+
+.scroll-guide-text {
+  color: var(--sunbeam-gold);
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* ==========================================================================
+   DRAWABLE LEAF DOM ELEMENTS (CAPTURED BY HTML-IN-CANVAS INTO 3D LEAF TEXTURE)
+   ========================================================================== */
+
+.hic-leaf-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 680px;
+  padding: 1.15rem 1.45rem;
+  color: var(--text-cream);
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.leaf-vein-watermark {
+  display: none;
+}
+
+.leaf-header,
+.leaf-body,
+.leaf-footer {
+  position: relative;
+  z-index: 2;
+}
+
+.leaf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(150, 255, 180, 0.35);
+}
+
+.leaf-sprout-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(6, 32, 16, 0.65);
+  border: 1px solid rgba(130, 255, 168, 0.55);
+  color: #b5ffd0;
+}
+
+.leaf-serial {
+  font-size: 0.68rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--sunbeam-gold);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.leaf-body h1 {
+  margin: 0 0 0.45rem 0;
+  font-size: 1.85rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+  line-height: 1.15;
+}
+
+.leaf-body h2 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.42rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  line-height: 1.2;
+}
+
+.leaf-lead {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #dcf7e3;
+}
+
+.leaf-funny-pullquote {
+  margin: 0 0 0.55rem 0;
+  padding: 0.48rem 0.85rem;
+  border-left: 4px solid var(--sunbeam-gold);
+  background: rgba(3, 18, 9, 0.52);
+  border-radius: 0 10px 10px 0;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  color: #fff4c7;
+}
+
+.leaf-copy {
+  margin: 0 0 0.52rem 0;
+  font-size: 0.84rem;
+  color: #eefaf1;
+  line-height: 1.45;
+}
+
+.hero-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin-bottom: 0.65rem;
+}
+
+.hero-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(3, 20, 10, 0.55);
+  border: 1px solid rgba(114, 236, 151, 0.3);
+  font-size: 0.75rem;
+}
+
+.hero-feature-item strong {
+  display: block;
+  color: var(--sunbeam-gold);
+  margin-bottom: 0.12rem;
+}
+
+.leaf-interactive-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.8rem;
+  margin-top: 0.45rem;
+  border-radius: 12px;
+  background: rgba(3, 18, 9, 0.62);
+  border: 1px solid rgba(247, 213, 116, 0.45);
+  flex-wrap: wrap;
+}
+
+.interactive-box-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.78rem;
+}
+
+.interactive-box-info strong {
+  color: var(--sunbeam-gold);
+}
+
+.stat-readout {
+  color: #b4ffd0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+}
+
+.leaf-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.leaf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(140, 250, 175, 0.28);
+  flex-wrap: wrap;
+}
+
+.leaf-actions,
+.leaf-meta-pills,
+.leaf-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
+.meta-pill {
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(4, 20, 11, 0.62);
+  border: 1px solid rgba(114, 236, 151, 0.32);
+  font-size: 0.7rem;
+  color: #d4f5dd;
+  font-weight: 600;
+}
+
+.btn-botanical {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  padding: 0.44rem 0.88rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #75ff9f;
+  background: linear-gradient(135deg, #228c49 0%, #115228 100%);
+  color: #ffffff;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #d49522 0%, #8f5c0c 100%);
+  border-color: #ffe28a;
+}
+
+.btn-leaf-step {
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid rgba(130, 248, 165, 0.4);
+  background: rgba(5, 24, 13, 0.75);
+  color: var(--text-cream);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   LEAF #4: INTERACTIVE NEWSLETTER FORM (MODERN WEB GUIDANCE COMPLIANT)
+   ========================================================================== */
+
+.leaf-newsletter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.3rem;
+}
+
+.form-row-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.1rem;
+}
+
+.req-star {
+  color: var(--sunbeam-gold);
+}
+
+/* Format hints placed ABOVE inputs so autocomplete popovers do not cover them */
+.field-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: #c9ebd3;
+  margin-bottom: 0.2rem;
+}
+
+.form-field input[type="text"],
+.form-field input[type="email"] {
+  font-size: 1rem;
+  min-height: 48px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 2px solid rgba(120, 245, 160, 0.55);
+  background: rgba(3, 16, 9, 0.78);
+  color: #ffffff;
+}
+
+/* Deferred Validation After Interaction (:user-invalid & :user-valid + Fallbacks) */
+.form-field input:user-invalid,
+.form-field input.user-invalid-fallback {
+  border-color: #ff5e4d;
+  background-color: rgba(68, 14, 14, 0.82);
+}
+
+.form-field input:user-valid,
+.form-field input.user-valid-fallback {
+  border-color: #46e87d;
+  background-color: rgba(9, 44, 23, 0.82);
+}
+
+.field-error-msg {
+  display: none;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: #ff9c8f;
+  font-weight: 600;
+}
+
+.form-field input:user-invalid + .field-error-msg,
+.form-field input.user-invalid-fallback + .field-error-msg {
+  display: block;
+}
+
+.courier-fieldset {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 245, 160, 0.4);
+  background: rgba(3, 18, 9, 0.55);
+}
+
+.courier-fieldset legend {
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--sunbeam-gold);
+}
+
+.courier-radio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.courier-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(7, 30, 16, 0.65);
+  border: 1px solid rgba(114, 236, 151, 0.28);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.courier-option input[type="radio"] {
+  accent-color: var(--chlorophyll-glow);
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+}
+
+.courier-text em {
+  display: block;
+  font-size: 0.65rem;
+  color: #c2e5cc;
+  font-style: normal;
+}
+
+.form-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.newsletter-feedback {
+  font-size: 0.75rem;
+  color: var(--sunbeam-gold);
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(4, 20, 11, 0.7);
+  border: 1px solid rgba(247, 213, 116, 0.35);
+}
+
+/* ==========================================================================
+   LEAF #5: INTERACTIVE MULTIPLE-CHOICE RAINFOREST EXAM
+   ========================================================================== */
+
+.quiz-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.quiz-top-bar h2 {
+  margin: 0;
+}
+
+.quiz-question-tabs {
+  display: flex;
+  gap: 0.32rem;
+}
+
+.quiz-tab-btn {
+  padding: 0.24rem 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 245, 160, 0.4);
+  background: rgba(5, 22, 12, 0.75);
+  color: #c9ebd3;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quiz-tab-btn.is-active {
+  background: var(--sunbeam-gold);
+  color: #061d0f;
+}
+
+.quiz-prompt-text {
+  margin: 0 0 0.48rem 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff6d1;
+}
+
+.quiz-choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.42rem;
+  margin-bottom: 0.48rem;
+}
+
+.quiz-choice-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.48rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 245, 160, 0.38);
+  background: rgba(4, 22, 12, 0.72);
+  color: var(--text-cream);
+  text-align: left;
+  font-size: 0.76rem;
+  line-height: 1.32;
+  cursor: pointer;
+}
+
+.choice-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: rgba(88, 235, 137, 0.22);
+  border: 1px solid rgba(88, 235, 137, 0.6);
+  color: var(--sunbeam-gold);
+  font-weight: 800;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.quiz-explanation-banner {
+  padding: 0.42rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(3, 16, 9, 0.78);
+  border: 1px solid rgba(247, 213, 116, 0.4);
+  font-size: 0.76rem;
+  color: #e8fced;
+}
+
+/* ==========================================================================
+   LEAF #6 & STAGE 7 FINALE ELEMENTS
+   ========================================================================== */
+
+.leaf-fire-overlay {
+  display: none;
+}
+
+.burn-state-container.is-hidden {
+  display: none;
+}
+
+.burn-trigger-panel,
+.charred-recovery-meter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  margin-top: 0.45rem;
+  border-radius: 12px;
+  background: rgba(36, 11, 7, 0.72);
+  border: 1px solid rgba(255, 115, 65, 0.55);
+  flex-wrap: wrap;
+}
+
+.burn-trigger-copy,
+.recovery-meter-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.76rem;
+  flex: 1;
+}
+
+.btn-ignite-fire {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.05rem;
+  border-radius: 999px;
+  border: 2px solid #ffba7a;
+  background: linear-gradient(135deg, #e03c14 0%, #991706 100%);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.engagement-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0.45rem 0;
+}
+
+.engagement-pillar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  background: rgba(4, 22, 12, 0.68);
+  border: 1px solid rgba(114, 236, 151, 0.34);
+  font-size: 0.74rem;
+}
+
+.pillar-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+  color: var(--sunbeam-gold);
+  font-size: 0.78rem;
+}
+
+.engagement-pillar p {
+  margin: 0 0 0.45rem 0;
+  line-height: 1.35;
+}
+
+.btn-pledge-action {
+  padding: 0.38rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 213, 116, 0.55);
+  background: linear-gradient(135deg, rgba(32, 110, 58, 0.9), rgba(16, 64, 34, 0.9));
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.finale-pledge-status {
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(6, 30, 16, 0.78);
+  border: 1px solid rgba(247, 213, 116, 0.4);
+  font-size: 0.75rem;
+  color: #fff2ba;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   SCROLLYTELLING SNAP TRACK & DIALOG MODAL
+   ========================================================================== */
+
+.scroll-track {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.scroll-step {
+  width: 100%;
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.arch-dialog {
+  max-width: 620px;
+  width: 92vw;
+  padding: 0;
+  border-radius: 22px;
+  border: 2px solid var(--chlorophyll-glow);
+  background: linear-gradient(145deg, #0b2b19 0%, #05160c 100%);
+  color: var(--text-cream);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.88);
+}
+
+.arch-dialog::backdrop {
+  background: rgba(2, 10, 6, 0.76);
+  backdrop-filter: blur(6px);
+}
+
+.arch-dialog-form {
+  padding: 1.35rem 1.6rem;
+}
+
+.arch-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(114, 236, 151, 0.28);
+}
+
+.arch-dialog-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--sunbeam-gold);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-dialog-close {
+  background: transparent;
+  border: 1px solid rgba(114, 236, 151, 0.4);
+  color: var(--text-cream);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.arch-dialog-body {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #c2e3ca;
+}
+
+.arch-dialog-body ul {
+  padding-left: 1.2rem;
+}
+
+.arch-dialog-body li {
+  margin-bottom: 0.55rem;
+}
+
+.arch-dialog-body strong {
+  color: #ffffff;
+}
+
+.arch-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(114, 236, 151, 0.25);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--sunbeam-gold);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .hud-telemetry .telemetry-pill {
+    display: none;
+  }
+}

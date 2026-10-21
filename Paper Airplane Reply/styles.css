@@ -1,0 +1,817 @@
+/* ==========================================================================
+   Paper Airplane Reply — Tactile Airmail Stationery & 3D Viewport Styles
+   ========================================================================== */
+
+:root {
+  --sky-top: #0f2547;
+  --sky-mid: #1e4d8c;
+  --sky-horizon: #f3a661;
+  --paper-cream: #fdf9ee;
+  --paper-warm: #f5ebd4;
+  --paper-border: #d9cbb0;
+  --ink-navy: #14284b;
+  --ink-Body: #1f3356;
+  --ink-muted: #5a6b87;
+  --airmail-red: #d93829;
+  --airmail-blue: #1b4f9c;
+  --accent-gold: #f59e0b;
+  --focus-ring: #0b57d0;
+  --error-crimson: #b91c1c;
+  --error-bg: #fef2f2;
+  --hud-glass: rgba(13, 27, 52, 0.82);
+  --hud-border: rgba(255, 255, 255, 0.16);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--sky-top);
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Canonical visually-hidden utility per Modern Web Guidance (forms) */
+.visually-hidden {
+  position: absolute;
+  clip-path: inset(50%);
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: -100px;
+  inset-inline-start: 1rem;
+  z-index: 1000;
+  background: var(--paper-cream);
+  color: var(--ink-navy);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.skip-link:focus-visible {
+  inset-block-start: 1rem;
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Top HUD Header
+   ========================================================================== */
+
+.hud-header {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--hud-glass);
+  backdrop-filter: blur(12px);
+  border-block-end: 1px solid var(--hud-border);
+  pointer-events: auto;
+}
+
+.brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, var(--airmail-red), #f97316);
+  color: #fff;
+  font-size: 1.3rem;
+  box-shadow: 0 4px 12px rgba(217, 56, 41, 0.4);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+.brand-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+.hud-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.status-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 10px #34d399;
+}
+
+.status-dot.is-folding {
+  background: #fbbf24;
+  box-shadow: 0 0 12px #fbbf24;
+}
+
+.status-dot.is-flying {
+  background: #38bdf8;
+  box-shadow: 0 0 14px #38bdf8;
+}
+
+.status-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.hic-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #bae6fd;
+}
+
+/* ==========================================================================
+   Main 3D Stage & HTML-in-Canvas Container
+   ========================================================================== */
+
+.stage-main {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.stage-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#airplane-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* Fallback overlay container for browsers without native content="drawable" */
+.hic-fallback-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 15;
+}
+
+/* ==========================================================================
+   Tactile Paper Stationery Form (440px x 544px — matches 3.40 : 4.204 3D Sheet)
+   ========================================================================== */
+
+.paper-sheet-form {
+  position: relative;
+  width: 440px;
+  height: 544px;
+  padding: 22px 26px 20px;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.7), transparent 60%),
+    linear-gradient(180deg, var(--paper-cream) 0%, var(--paper-warm) 100%);
+  color: var(--ink-navy);
+  border: 1px solid var(--paper-border);
+  border-radius: 3px;
+  box-shadow:
+    0 20px 50px rgba(8, 18, 38, 0.45),
+    0 2px 6px rgba(8, 18, 38, 0.2),
+    inset 0 0 28px rgba(205, 180, 135, 0.25);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: auto;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  user-select: text;
+}
+
+/* Classic Red & Navy Airmail Par-Avion Chevron Trim */
+.airmail-border-top,
+.airmail-border-bottom {
+  position: absolute;
+  inset-inline: 0;
+  height: 9px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--airmail-red) 0px,
+    var(--airmail-red) 12px,
+    #fdf9ee 12px,
+    #fdf9ee 20px,
+    var(--airmail-blue) 20px,
+    var(--airmail-blue) 32px,
+    #fdf9ee 32px,
+    #fdf9ee 40px
+  );
+}
+
+.airmail-border-top {
+  inset-block-start: 0;
+}
+
+.airmail-border-bottom {
+  inset-block-end: 0;
+}
+
+/* Subtle Origami Fold Crease Watermarks on the Flat Sheet */
+.origami-crease-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Center vertical spine crease line */
+.origami-crease-guides::before {
+  content: "";
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 50%;
+  width: 0;
+  border-inline-start: 1px dashed rgba(27, 79, 156, 0.22);
+}
+
+/* Diagonal 45° nose fold guide lines */
+.origami-crease-guides::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(45deg, transparent 49.6%, rgba(217, 56, 41, 0.14) 49.8%, rgba(217, 56, 41, 0.14) 50.2%, transparent 50.4%),
+    linear-gradient(-45deg, transparent 49.6%, rgba(217, 56, 41, 0.14) 49.8%, rgba(217, 56, 41, 0.14) 50.2%, transparent 50.4%);
+  background-size: 50% 220px;
+  background-repeat: no-repeat;
+  background-position: left top, right top;
+}
+
+.crease-tag {
+  position: absolute;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(27, 79, 156, 0.42);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.crease-tag-left {
+  inset-block-start: 56px;
+  inset-inline-start: 12px;
+  transform: rotate(-45deg);
+}
+
+.crease-tag-right {
+  inset-block-start: 56px;
+  inset-inline-end: 12px;
+  transform: rotate(45deg);
+}
+
+.crease-tag-center {
+  inset-block-end: 14px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+
+/* Stationery Header */
+.sheet-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-block-end: 10px;
+  border-block-end: 2px solid var(--ink-navy);
+}
+
+.par-avion-wing {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.par-avion-title {
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--airmail-blue);
+}
+
+.par-avion-sub {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--airmail-red);
+}
+
+.postage-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 64px;
+  padding: 4px;
+  background: #fff8eb;
+  border: 2px dashed var(--airmail-red);
+  border-radius: 3px;
+  color: var(--airmail-red);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  transform: rotate(2.5deg);
+}
+
+.stamp-price {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.stamp-icon {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.stamp-label {
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--airmail-blue);
+}
+
+/* Form Fieldset & Groups (Gestalt Proximity Rule applied) */
+.sheet-fieldset {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  margin: 0;
+  padding: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.form-group {
+  margin-block-end: 0.95rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group-message {
+  flex: 1;
+  margin-block-end: 0.75rem;
+}
+
+.label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  /* Gestalt proximity: smaller gap between label and its input (4px) than between form groups (15px) */
+  margin-block-end: 0.25rem;
+}
+
+.sheet-label {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink-navy);
+  cursor: pointer;
+}
+
+.required-star {
+  color: var(--airmail-red);
+}
+
+.field-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.sheet-input,
+.sheet-textarea {
+  width: 100%;
+  font-size: 1rem; /* >= 16px prevents mobile zoom per Forms guide */
+  font-family: "Courier Prime", "Courier New", Courier, monospace;
+  font-weight: 600;
+  color: var(--ink-navy);
+  background-color: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid #8fa3c4;
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.sheet-input {
+  min-height: 48px;
+}
+
+.sheet-textarea {
+  flex: 1;
+  min-height: 158px;
+  max-height: 190px;
+  resize: vertical;
+  line-height: 1.65rem;
+  /* Ruled airmail stationery lines */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 25px,
+    rgba(27, 79, 156, 0.16) 26px
+  );
+  background-attachment: local;
+}
+
+.sheet-input:focus-visible,
+.sheet-textarea:focus-visible,
+button:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  background-color: #ffffff;
+}
+
+/* Non-intrusive validation styling using :invalid:user-invalid per Forms guide */
+.sheet-input:invalid:user-invalid,
+.sheet-textarea:invalid:user-invalid,
+.sheet-input.is-invalid,
+.sheet-textarea.is-invalid {
+  border-color: var(--error-crimson);
+  background-color: var(--error-bg);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-block-start: 0.28rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--error-crimson);
+}
+
+.field-error[hidden] {
+  display: none;
+}
+
+/* Form Footer & Submit Button */
+.sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-block-start: 0.25rem;
+}
+
+.sheet-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-sheet-secondary {
+  min-height: 48px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink-navy);
+  background: rgba(20, 40, 75, 0.07);
+  border: 1px solid rgba(20, 40, 75, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-sheet-secondary:hover {
+  background: rgba(20, 40, 75, 0.14);
+}
+
+.btn-send-airplane {
+  flex: 1;
+  min-height: 48px;
+  padding: 0.65rem 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--airmail-red) 0%, #b91c1c 100%);
+  border: none;
+  border-radius: 5px;
+  box-shadow: 0 6px 16px rgba(217, 56, 41, 0.38);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-send-airplane:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(217, 56, 41, 0.5);
+  filter: brightness(1.06);
+}
+
+.btn-send-airplane:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Delivery Confirmation Toast Banner
+   ========================================================================== */
+
+.delivery-toast {
+  position: absolute;
+  inset-block-start: 5.2rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(92vw, 560px);
+  background: rgba(15, 32, 62, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 0.85rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+
+.delivery-toast[hidden] {
+  display: none;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.toast-badge {
+  font-size: 1.4rem;
+}
+
+.toast-copy {
+  flex: 1;
+  min-width: 200px;
+}
+
+.toast-copy strong {
+  display: block;
+  font-size: 0.98rem;
+  color: #fde68a;
+}
+
+.toast-copy p {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+}
+
+.toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-toast {
+  min-height: 42px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-toast-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f8fafc;
+}
+
+.btn-toast-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btn-toast-primary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0f172a;
+}
+
+.btn-toast-primary:hover {
+  filter: brightness(1.08);
+}
+
+/* ==========================================================================
+   Bottom Interactive Origami & Aerobatics Control Deck
+   ========================================================================== */
+
+.hud-footer {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 30;
+  padding: 0.65rem 1.25rem;
+  background: var(--hud-glass);
+  backdrop-filter: blur(12px);
+  border-block-start: 1px solid var(--hud-border);
+}
+
+.deck-panel {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.deck-label {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-block-end: 0.25rem;
+}
+
+.fold-steps-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.stage-pill {
+  min-height: 36px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stage-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.stage-pill.is-active {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+
+.scrubber-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+}
+
+.fold-range {
+  width: 100%;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+.flip-style-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.flip-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.flip-radio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.flip-radio-pill input[type="radio"] {
+  accent-color: var(--airmail-red);
+  margin: 0;
+}
+
+.deck-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-deck {
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-deck-reset {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+}
+
+.btn-deck-reset:hover {
+  background: rgba(255, 255, 255, 0.17);
+}
+
+.btn-deck-launch {
+  background: linear-gradient(135deg, var(--airmail-red), #ea580c);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(217, 56, 41, 0.35);
+}
+
+.btn-deck-launch:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 900px) {
+  .hud-header {
+    padding: 0.5rem 0.9rem;
+  }
+  .brand-subtitle {
+    display: none;
+  }
+  .hud-footer {
+    padding: 0.5rem 0.75rem;
+  }
+  .flip-style-fieldset {
+    display: none;
+  }
+}

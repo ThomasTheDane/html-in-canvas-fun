@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' https: data: blob:; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self';">
+  <title>FRACTAL WORD CHAIN EXPLORER</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a href="#prompt-input" class="skip-link">Skip to prompt input</a>
+
+  <!-- Neobrutalist Top Command Deck: Model Loader + Prompt Input + Config Button -->
+  <header class="brutal-header">
+    <form id="prompt-form" class="command-deck" action="#fractal-canvas" method="POST" novalidate>
+      <!-- 1. Model Selection, Download & Status Box -->
+      <div class="brutal-box model-deck-box" role="region" aria-label="On-Device AI Model">
+        <div class="model-top-row">
+          <label for="model-select" class="brutal-tag">MODEL</label>
+          <select id="model-select" name="modelId" class="brutal-select">
+            <option value="HuggingFaceTB/SmolLM2-135M-Instruct" selected>
+              SmolLM2 135M (112 MB)
+            </option>
+            <option value="HuggingFaceTB/SmolLM2-360M-Instruct">
+              SmolLM2 360M (260 MB)
+            </option>
+            <option value="onnx-community/Qwen2.5-0.5B-Instruct">
+              Qwen2.5 0.5B (461 MB)
+            </option>
+            <option value="HuggingFaceTB/SmolLM2-1.7B-Instruct">
+              SmolLM2 1.7B (1.06 GB)
+            </option>
+          </select>
+          <button type="button" id="btn-load-model" class="brutal-btn brutal-btn-mint">
+            FETCH MODEL
+          </button>
+        </div>
+
+        <div class="model-status-strip" aria-live="polite">
+          <span id="model-status-dot" class="status-pill status-standby" aria-hidden="true"></span>
+          <span id="model-status-text" class="model-status-text">STANDBY — READY TO FETCH</span>
+          <span id="hardware-badge" class="hw-pill">WEBGPU</span>
+          <div
+            class="brutal-progress"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            id="model-progressbar"
+          >
+            <div id="model-progress-fill" class="brutal-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Prompt Input & Big Send Button -->
+      <div class="brutal-box prompt-deck-box">
+        <label for="prompt-input" class="visually-hidden">Seed Prompt</label>
+        <input
+          type="text"
+          id="prompt-input"
+          name="prompt"
+          class="brutal-prompt-input"
+          value="The web platform is amazing because"
+          required
+          minlength="2"
+          maxlength="280"
+          enterkeyhint="send"
+          aria-describedby="prompt-error"
+        >
+        <button type="submit" id="btn-submit-prompt" class="brutal-btn brutal-btn-send">
+          SEND ✦
+        </button>
+        <button type="button" id="btn-abort-gen" class="brutal-btn brutal-btn-stop" hidden>
+          STOP ■
+        </button>
+        <span id="prompt-error" class="prompt-error-badge" role="alert" aria-live="polite"></span>
+      </div>
+
+      <!-- 3. Right Configuration Trigger Button -->
+      <div class="config-trigger-wrap">
+        <button
+          type="button"
+          id="btn-config"
+          class="brutal-btn brutal-btn-config"
+          commandfor="config-popover"
+          command="toggle-popover"
+          popovertarget="config-popover"
+        >
+          ⚙ CONFIG
+        </button>
+      </div>
+
+      <!-- Configuration Popover Panel (Mode, Depth, Choices, Temp) -->
+      <div id="config-popover" popover="auto" class="brutal-popover">
+        <div class="popover-header">
+          <span class="popover-title">FRACTAL PARAMETERS</span>
+          <button
+            type="button"
+            class="brutal-btn-close"
+            commandfor="config-popover"
+            command="hide-popover"
+            popovertarget="config-popover"
+            popovertargetaction="hide"
+            aria-label="Close configuration"
+          >
+            ✕
+          </button>
+        </div>
+
+        <fieldset class="brutal-fieldset">
+          <legend class="brutal-legend">PROMPT MODE</legend>
+          <div class="brutal-radio-row">
+            <label class="brutal-radio-card">
+              <input type="radio" name="promptMode" value="continuation" checked>
+              <span>CONTINUATION</span>
+            </label>
+            <label class="brutal-radio-card">
+              <input type="radio" name="promptMode" value="chat">
+              <span>CHAT REPLY</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="brutal-fieldset">
+          <legend class="brutal-legend">CHAIN DEPTH PER CLICK</legend>
+          <div class="brutal-radio-row">
+            <label class="brutal-radio-card">
+              <input type="radio" name="burstDepth" value="3">
+              <span>3 STEPS</span>
+            </label>
+            <label class="brutal-radio-card">
+              <input type="radio" name="burstDepth" value="4" checked>
+              <span>4 STEPS</span>
+            </label>
+            <label class="brutal-radio-card">
+              <input type="radio" name="burstDepth" value="5">
+              <span>5 STEPS</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="brutal-fieldset">
+          <legend class="brutal-legend">TOP-K TOKEN CHOICES</legend>
+          <div class="brutal-radio-row">
+            <label class="brutal-radio-card">
+              <input type="radio" name="topK" value="3">
+              <span>TOP 3</span>
+            </label>
+            <label class="brutal-radio-card">
+              <input type="radio" name="topK" value="5" checked>
+              <span>TOP 5</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="brutal-fieldset">
+          <label for="temp-slider" class="brutal-legend">
+            TEMPERATURE: <span id="temp-val-label">1.0</span>
+          </label>
+          <input
+            type="range"
+            id="temp-slider"
+            name="temperature"
+            min="0.4"
+            max="1.6"
+            step="0.1"
+            value="1.0"
+            class="brutal-range"
+          >
+        </div>
+
+        <label class="brutal-checkbox-row">
+          <input type="checkbox" id="prefer-words-toggle" name="preferWords" checked>
+          <span>WHOLE-WORD PRIORITY</span>
+        </label>
+      </div>
+    </form>
+
+    <!-- Full Sentence / Active Word Chain Progression Bar -->
+    <div class="brutal-box sentence-chain-bar" role="region" aria-label="Full Sentence Chain">
+      <span class="brutal-tag sentence-tag">FULL PHRASE</span>
+      <div
+        class="sentence-tokens-flow"
+        id="active-chain-tokens"
+        role="list"
+        aria-live="polite"
+      ></div>
+      <div class="sentence-bar-meta">
+        <span class="chain-prob-pill" id="chain-prob-summary">DEPTH 4</span>
+        <button type="button" id="btn-copy-chain" class="brutal-btn brutal-btn-copy" title="Copy full sentence">
+          COPY
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Central Immersive Fractal Word Chain Stage -->
+  <main class="stage-main">
+    <div class="canvas-viewport" id="canvas-viewport">
+      <canvas
+        id="fractal-canvas"
+        content="drawable"
+        aria-label="Interactive Fractal Word Chain Tree"
+      ></canvas>
+
+      <!-- In-Place Next-Words Buffer Spinner (Native Indeterminate <progress> per Modern Web Guidance) -->
+      <div id="word-buffer-spinner-wrap" class="word-buffer-spinner-wrap" hidden>
+        <progress aria-label="Loading next suggested words" class="loading-spinner"></progress>
+        <span id="word-buffer-spinner-label" class="word-buffer-spinner-label">Generating words…</span>
+      </div>
+
+      <!-- Minimal Floating Status Banner -->
+      <div class="stage-Banner">
+        <div class="brutal-status-chip">
+          <span class="telemetry-dot" id="gen-activity-dot"></span>
+          <span id="telemetry-text">SCROLL VERTICAL OR CLICK WORDS TO FLOW • HOVER TO PICK PATH</span>
+        </div>
+      </div>
+
+      <!-- Bold Neobrutalist Step Navigation Controls -->
+      <div class="canvas-toolbar" role="toolbar" aria-label="Sentence Step Controls">
+        <button type="button" id="btn-step-back" class="brutal-icon-btn" title="Step Back (Scroll Up)">
+          ↑ BACK
+        </button>
+        <button type="button" id="btn-step-forward" class="brutal-icon-btn" title="Select Highlighted Word (Scroll Down)">
+          ↓ NEXT
+        </button>
+        <button type="button" id="btn-fit-tree" class="brutal-icon-btn" title="Return to Initial Sentence">
+          ↺ START
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

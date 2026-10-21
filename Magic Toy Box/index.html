@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>The Magical Toy Box — 3D Holiday Workshop &amp; HTML-in-Canvas Showcase</title>
+  <link rel="preload" as="image" href="./assets/grid_bg.png" fetchpriority="high">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- Fixed 3D Stage & HTML-in-Canvas Viewport -->
+  <div id="stage-viewport" class="stage-viewport">
+    <canvas id="toybox-canvas" content="drawable" aria-label="3D Magical Toy Box and swirling wooden figurines">
+      <!-- Direct child 0: Hero Title Plaque (drawable via HTML-in-Canvas) -->
+      <article id="hic-hero-plaque" class="hic-card hic-hero-card" drawable>
+        <div class="hic-card-ornament" aria-hidden="true">❄ ✦ 🎄 ✦ ❄</div>
+        <p class="hic-eyebrow">
+          <span aria-hidden="true">⚙</span>
+          <span>North Pole Clockwork Workshop • Est. 1894</span>
+        </p>
+        <h1>The Magical Toy Box</h1>
+        <p class="hic-lead">
+          Turn the brass wind-up key to awaken the hand-carved woodland artisans inside the enchanted mahogany box. Scroll down to crank the key, pop open the lid, and inspect the swirling workshop carousel!
+        </p>
+        <div class="hic-hero-actions">
+          <button type="button" id="btn-crank-hero" class="btn-ornate btn-gold">
+            <span aria-hidden="true">🔑</span>
+            <span>Crank the Wind-Up Key</span>
+          </button>
+          <button type="button" id="btn-jump-carousel" class="btn-ornate btn-crimson">
+            <span aria-hidden="true">✨</span>
+            <span>Open Box &amp; Meet the Crew</span>
+          </button>
+        </div>
+        <div class="hic-shader-pill">
+          <span aria-hidden="true">🎨</span>
+          <span id="hic-mode-status">HTML-in-Canvas + WebGL Foil &amp; Frost Shader Active</span>
+        </div>
+      </article>
+
+      <!-- Direct children 1..9: Drawable HTML-in-Canvas Cards for each Toy Box Element -->
+      <article id="hic-card-0" class="hic-card hic-item-card" data-index="0" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-artisan">
+            <span aria-hidden="true">🪵</span>
+            <span>Woodland Artisan • Lv.1 MAX</span>
+          </span>
+          <span class="hic-slot-num">#01 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="beaver" width="220" height="220" aria-label="Animated wooden Beaver figurine holding a chisel and mallet"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Barnaby the Chisel Beaver</h2>
+            <p class="hic-role">Master Timber Sculptor &amp; Refuser of Dental Labor</p>
+            <blockquote class="hic-quip">
+              “Meet the beaver — he uses a chisel even though he’s literally a beaver.”
+            </blockquote>
+            <p class="hic-lore">
+              North Pole union rules strictly forbid gnawing on company timber. Besides, Barnaby spent four years at the Artisanal Carpentry Academy and insists on showing off his mortise-and-tenon mallet technique.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🔨</strong> Output: <em>Carved Planks</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🦷</strong> Teeth Used: <em>0%</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="0">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-1" class="hic-card hic-item-card" data-index="1" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-artisan">
+            <span aria-hidden="true">🦉</span>
+            <span>Master Engineer • Tier III</span>
+          </span>
+          <span class="hic-slot-num">#02 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="owl" width="220" height="220" aria-label="Animated wooden Owl figurine with glasses assembling a miniature toy train"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Professor Hoot’s Toy Assembler</h2>
+            <p class="hic-role">Chief Locomotive Architect &amp; Spectacle Adjuster</p>
+            <blockquote class="hic-quip">
+              “Adjusts his brass spectacles 40 times a minute, turns a wrench once, and claims full credit for the train.”
+            </blockquote>
+            <p class="hic-lore">
+              Sporting a dapper crimson bow tie, this hand-carved owl fuses polished wooden dowels and smelted iron gears into wind-up holiday locomotives—powered by academic superiority and Christmas cheer.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🚂</strong> Crafts: <em>Holiday Express</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🎀</strong> Bow Tie: <em>Festive</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="1">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-2" class="hic-card hic-item-card" data-index="2" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-artisan">
+            <span aria-hidden="true">🐿️</span>
+            <span>Woodland Artisan • Tier I</span>
+          </span>
+          <span class="hic-slot-num">#03 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="squirrel" width="220" height="220" aria-label="Animated wooden Squirrel figurine turning a wood lathe"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Twigs the Lathe Squirrel</h2>
+            <p class="hic-role">High-RPM Dowel Spinner &amp; Acorn Enthusiast</p>
+            <blockquote class="hic-quip">
+              “Spins a precision wood-lathe at 3,000 RPM while fighting every instinct to bury the sticks for winter.”
+            </blockquote>
+            <p class="hic-lore">
+              Feed him a rough timber log and he’ll shave it into symmetrically turned wooden rods in seconds. His oversized carved tail acts as an aerodynamic counterweight during high-speed lathe bursts.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🥖</strong> Output: <em>Bundled Dowels</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🌀</strong> Lathe Speed: <em>3,000 RPM</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="2">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-3" class="hic-card hic-item-card" data-index="3" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-miner">
+            <span aria-hidden="true">⛏️</span>
+            <span>Sub-Box Excavator • Tier I</span>
+          </span>
+          <span class="hic-slot-num">#04 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="mole" width="220" height="220" aria-label="Animated wooden Mole figurine wearing brass goggles and swinging a pickaxe"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Digby the Goggled Mole</h2>
+            <p class="hic-role">Deep-Box Ore Prospector</p>
+            <blockquote class="hic-quip">
+              “Wears brass aviation goggles inside a wooden tabletop box and somehow strikes pure iron ore.”
+            </blockquote>
+            <p class="hic-lore">
+              Physicists are baffled as to how a two-inch-thick mahogany board contains a rich subterranean iron vein, and Digby refuses to explain without his lawyer present.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🪨</strong> Output: <em>Raw Iron Ore</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🥽</strong> Goggle Polish: <em>100%</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="3">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-4" class="hic-card hic-item-card" data-index="4" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-forge">
+            <span aria-hidden="true">🔥</span>
+            <span>Foundry Specialist • Tier II</span>
+          </span>
+          <span class="hic-slot-num">#05 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="badger" width="220" height="220" aria-label="Animated wooden Badger figurine operating a brick blast furnace with bellows and tongs"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Barnabas the Bellows Badger</h2>
+            <p class="hic-role">Master Foundry Smelter &amp; Fire Code Rebel</p>
+            <blockquote class="hic-quip">
+              “Operates a 2,000-degree brick blast-furnace inside a wooden toy box. Fire Marshal Santa has given up.”
+            </blockquote>
+            <p class="hic-lore">
+              Pumps the leather bellows with infectious holiday glee and pulls glowing-hot stamped metal plates straight from the brass-domed kiln like he’s dual-wielding Christmas waffles.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">⚙️</strong> Output: <em>Stamped Iron &amp; Gears</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🌡️</strong> Kiln Temp: <em>Cozy</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="4">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-5" class="hic-card hic-item-card" data-index="5" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-contraption">
+            <span aria-hidden="true">⚙️</span>
+            <span>Clockwork Contraption • Tier II</span>
+          </span>
+          <span class="hic-slot-num">#06 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="merger" width="220" height="220" aria-label="Animated wooden and brass spring-loaded Merger contraption"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>The Spring-Loaded Merger</h2>
+            <p class="hic-role">Kinetic Component Fusion Press</p>
+            <blockquote class="hic-quip">
+              “Clamps two perfectly good parts together with violent clockwork enthusiasm until they become a higher tier.”
+            </blockquote>
+            <p class="hic-lore">
+              Driven by twin brass pinions and an industrial coil spring. Drop two matching resources onto the golden anvil pad, stand back three inches, and watch the sparks fly!
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">✨</strong> Action: <em>2-into-1 Upgrade</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🔩</strong> Torque: <em>Maximum</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="5">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-6" class="hic-card hic-item-card" data-index="6" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-contraption">
+            <span aria-hidden="true">🎅</span>
+            <span>Festive Logistics • Bumper</span>
+          </span>
+          <span class="hic-slot-num">#07 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="bouncer" width="220" height="220" aria-label="Animated wooden spring bumper with a crimson cushion and carved wooden Santa hat"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>The Jolly Santa Bouncer</h2>
+            <p class="hic-role">Spring-Loaded Velvet Ricochet Pad</p>
+            <blockquote class="hic-quip">
+              “A crimson pinball bumper wearing a carved wooden Santa hat—boings your resources into next Tuesday.”
+            </blockquote>
+            <p class="hic-lore">
+              Why build sensible conveyor belts when you can launch timber and iron plates across the board with festive kinetic physics? Features genuine brass scrollwork and a jaunty wooden pom-pom.
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🎯</strong> Action: <em>Grid Ricochet</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🎄</strong> Jolliness: <em>11/10</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="6">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-7" class="hic-card hic-item-card" data-index="7" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-festive">
+            <span aria-hidden="true">🎁</span>
+            <span>Holiday VIP • Goal Tile</span>
+          </span>
+          <span class="hic-slot-num">#08 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="santa" width="220" height="220" aria-label="Animated wooden Santa Claus figurine holding a glowing burlap gift sack"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>Father Christmas &amp; The Magic Sack</h2>
+            <p class="hic-role">VP of Toy Collection &amp; Silent Production Judge</p>
+            <blockquote class="hic-quip">
+              “Stands in the top-left corner holding a bottomless burlap sack, smiling warmly while judging your throughput.”
+            </blockquote>
+            <p class="hic-lore">
+              Every finished toy bounces straight into his golden-trimmed sack with a burst of starlight. Keep the wind-up key cranked so his bag stays full before Christmas Eve!
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🌟</strong> Capacity: <em>Infinite Toys</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🎅</strong> Ho-Ho-Hos: <em>Continuous</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="7">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+
+      <article id="hic-card-8" class="hic-card hic-item-card" data-index="8" drawable>
+        <header class="hic-card-header">
+          <span class="hic-badge hic-badge-festive">
+            <span aria-hidden="true">🚂</span>
+            <span>Masterpiece Toy &amp; Resources</span>
+          </span>
+          <span class="hic-slot-num">#09 / 09</span>
+        </header>
+        <div class="hic-card-body">
+          <div class="hic-portrait-frame">
+            <canvas class="hic-sprite-preview" data-sprite="resources" width="220" height="220" aria-label="Animated showcase of the Wind-Up Toy Train, rough planks, bundled sticks, iron ore, and brass gear plates"></canvas>
+          </div>
+          <div class="hic-card-copy">
+            <h2>The Wind-Up Holiday Express</h2>
+            <p class="hic-role">Crafted from Planks, Dowels, Iron Ore &amp; Gear Plates</p>
+            <blockquote class="hic-quip">
+              “A wind-up toy train built inside a wind-up toy box—complete with its own tiny wind-up key on the cab.”
+            </blockquote>
+            <p class="hic-lore">
+              Wait… if a wind-up wooden owl inside a wind-up toy box builds a wind-up locomotive with a wind-up key on the back, how many layers deep does the clockwork go?!
+            </p>
+          </div>
+        </div>
+        <footer class="hic-card-footer">
+          <div class="hic-stat-group">
+            <span class="hic-stat"><strong aria-hidden="true">🏆</strong> Value: <em>100 Holiday Joy</em></span>
+            <span class="hic-stat"><strong aria-hidden="true">🔑</strong> Inception: <em>Recursive</em></span>
+          </div>
+          <div class="hic-card-controls">
+            <button type="button" class="btn-card-nav" data-nav="prev" aria-label="Previous figurine">◀</button>
+            <button type="button" class="btn-card-action" data-wind="8">
+              <span aria-hidden="true">⚡</span>
+              <span>Crank Action</span>
+            </button>
+            <button type="button" class="btn-card-nav" data-nav="next" aria-label="Next figurine">▶</button>
+          </div>
+        </footer>
+      </article>
+    </canvas>
+
+    <!-- Top Ornate Workshop HUD Navigation -->
+    <header class="workshop-hud">
+      <div class="hud-brand">
+        <span class="hud-crest" aria-hidden="true">🎄</span>
+        <div>
+          <span class="hud-title">Magical Toy Box</span>
+          <span class="hud-subtitle" id="hud-stage-label">Stage 1: The Sealed Mahogany Box</span>
+        </div>
+      </div>
+
+      <nav class="hud-carousel-nav" aria-label="Toy Box Figurines &amp; Contraptions">
+        <ul class="hud-medallions" id="hud-medallions">
+          <li><button type="button" class="medallion-btn" data-jump="0" aria-label="Beaver"><span aria-hidden="true">🦫</span><span class="medallion-name">Beaver</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="1" aria-label="Owl Assembler"><span aria-hidden="true">🦉</span><span class="medallion-name">Owl</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="2" aria-label="Squirrel Lathe"><span aria-hidden="true">🐿️</span><span class="medallion-name">Squirrel</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="3" aria-label="Mole Miner"><span aria-hidden="true">⛏️</span><span class="medallion-name">Mole</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="4" aria-label="Badger Smelter"><span aria-hidden="true">🔥</span><span class="medallion-name">Badger</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="5" aria-label="Spring Merger"><span aria-hidden="true">⚙️</span><span class="medallion-name">Merger</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="6" aria-label="Santa Bouncer"><span aria-hidden="true">🎅</span><span class="medallion-name">Bouncer</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="7" aria-label="Father Christmas"><span aria-hidden="true">🎁</span><span class="medallion-name">Santa</span></button></li>
+          <li><button type="button" class="medallion-btn" data-jump="8" aria-label="Toy Train &amp; Parts"><span aria-hidden="true">🚂</span><span class="medallion-name">Train</span></button></li>
+        </ul>
+      </nav>
+
+      <div class="hud-actions">
+        <button type="button" id="btn-wind-hud" class="btn-hud-key" aria-label="Crank Wind-Up Key">
+          <span class="key-icon" id="hud-key-icon" aria-hidden="true">🗝️</span>
+          <span id="hud-rpm-text">Wind Key</span>
+        </button>
+        <button type="button" id="btn-open-shader-info" class="btn-hud-info" aria-label="Inspect HTML-in-Canvas &amp; WebGL Shader pipeline">
+          <span aria-hidden="true">✨</span>
+          <span>Shader Info</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Bottom Scrollytelling Progress Bar & Prompt -->
+    <aside class="scroll-hud" aria-label="Scroll progress">
+      <div class="scroll-progress-track">
+        <div class="scroll-progress-fill" id="scroll-progress-fill"></div>
+      </div>
+      <div class="scroll-prompt" id="scroll-prompt">
+        <span aria-hidden="true">⇣</span>
+        <span id="scroll-prompt-text">Scroll to crank the key &amp; open the Magical Toy Box</span>
+        <span aria-hidden="true">⇣</span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Native Modal Dialog for HTML-in-Canvas & WebGL Shader Architecture Info -->
+  <dialog id="shader-dialog" class="ornate-dialog" closedby="any">
+    <form method="dialog" class="dialog-inner">
+      <header class="dialog-header">
+        <h2>
+          <span aria-hidden="true">✨</span>
+          <span>HTML-in-Canvas &amp; WebGL Shader Architecture</span>
+        </h2>
+        <button type="submit" value="close" class="btn-dialog-close" aria-label="Close dialog">✕</button>
+      </header>
+      <div class="dialog-content">
+        <p>
+          This campaign uses the modern <strong>HTML-in-Canvas API</strong> (<code>&lt;canvas content="drawable"&gt;</code> and <code>drawable</code> child elements) paired with <strong>Three.js WebGL2 Shaders</strong>:
+        </p>
+        <ul>
+          <li>
+            <strong>WebGL Shader Pipeline (<code>apply-webgl-shaders</code>):</strong> Each collector card is a semantic DOM <code>&lt;article drawable&gt;</code> element uploaded via <code>gl.texElementSubImage2D</code> into a pre-allocated <code>gl.RGBA8</code> texture inside <code>canvas.onpaint</code>, then shaded with an animated gold-foil border, candlelight warmth, snow sparkles, and subtle parchment wave vertex displacement.
+          </li>
+          <li>
+            <strong>3D Hit-Testing &amp; Accessibility Sync (<code>interactive-content-in-3d-scenes</code>):</strong> Every frame computes the 3D Model-View-Projection <code>DOMMatrix</code> via <code>computeCanvasTransform()</code> and registers it with <code>canvas.updateElementGeometry()</code> so buttons and text selection remain natively interactive and accessible to screen readers.
+          </li>
+          <li>
+            <strong>Universal Browser Fallback:</strong> In browsers where Chrome 157’s native <code>content="drawable"</code> flag is not yet enabled, the engine automatically synthesizes live high-DPI WebGL shader textures for the 3D cards while projecting the interactive DOM controls in lockstep.
+          </li>
+        </ul>
+      </div>
+      <footer class="dialog-footer">
+        <button type="submit" value="ok" class="btn-ornate btn-gold">Back to the Toy Box</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Scrollable Scrollytelling Track with Snap Sections -->
+  <main id="scroll-track" class="scroll-track">
+    <section id="step-hero" class="scroll-step step-hero" data-step="hero" data-step-number="0" aria-label="Stage 1: The Closed Magical Toy Box">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-opening" class="scroll-step step-opening" data-step="opening" data-step-number="1" aria-label="Stage 2: Winding the Key and Popping Open the Lid">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-0" class="scroll-step step-carousel" data-step="carousel" data-step-number="2" data-carousel-index="0" aria-label="Focus 1: Barnaby the Chisel Beaver">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-1" class="scroll-step step-carousel" data-step="carousel" data-step-number="3" data-carousel-index="1" aria-label="Focus 2: Professor Hoot's Toy Assembler">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-2" class="scroll-step step-carousel" data-step="carousel" data-step-number="4" data-carousel-index="2" aria-label="Focus 3: Twigs the Lathe Squirrel">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-3" class="scroll-step step-carousel" data-step="carousel" data-step-number="5" data-carousel-index="3" aria-label="Focus 4: Digby the Goggled Mole">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-4" class="scroll-step step-carousel" data-step="carousel" data-step-number="6" data-carousel-index="4" aria-label="Focus 5: Barnabas the Bellows Badger">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-5" class="scroll-step step-carousel" data-step="carousel" data-step-number="7" data-carousel-index="5" aria-label="Focus 6: The Spring-Loaded Merger">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-6" class="scroll-step step-carousel" data-step="carousel" data-step-number="8" data-carousel-index="6" aria-label="Focus 7: The Jolly Santa Bouncer">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-7" class="scroll-step step-carousel" data-step="carousel" data-step-number="9" data-carousel-index="7" aria-label="Focus 8: Father Christmas and the Magic Sack">
+      <div class="step-marker"></div>
+    </section>
+
+    <section id="step-carousel-8" class="scroll-step step-carousel" data-step="carousel" data-step-number="10" data-carousel-index="8" aria-label="Focus 9: The Wind-Up Holiday Express and Raw Materials">
+      <div class="step-marker"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

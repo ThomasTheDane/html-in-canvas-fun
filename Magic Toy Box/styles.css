@@ -1,0 +1,848 @@
+@layer reset, base, theme, components, utilities;
+
+@layer reset {
+  html, body, div, header, nav, main, section, article, aside, footer,
+  h1, h2, h3, p, blockquote, ul, li, figure, figcaption, dialog, form, button {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+}
+
+@layer theme {
+  :root {
+    color-scheme: dark;
+
+    /* Tier 1 & 2 Design Tokens — Ornate Mahogany, Brass & Holiday Palette */
+    --color-night-espresso: #120905;
+    --color-mahogany-deep: #241108;
+    --color-mahogany-warm: #3d1d0e;
+    --color-parchment: #fbf2dc;
+    --color-parchment-warm: #f3dfb9;
+    --color-ink-dark: #251309;
+    --color-ink-muted: #59351f;
+
+    --color-gold-bright: #ffd86b;
+    --color-gold-brass: #d49b35;
+    --color-gold-antique: #8c5c16;
+
+    --color-crimson: #b92525;
+    --color-crimson-deep: #7c1313;
+    --color-pine-green: #1e5938;
+    --color-pine-deep: #113822;
+    --color-frost-cyan: #a8e6ff;
+
+    /* Tints & Shades using color-mix in oklab */
+    --surface-hud: color-mix(in oklab, var(--color-mahogany-deep) 86%, transparent);
+    --surface-card: color-mix(in oklab, var(--color-parchment) 94%, var(--color-gold-bright) 6%);
+    --surface-card-inner: color-mix(in oklab, var(--color-parchment-warm) 88%, var(--color-gold-brass) 12%);
+    --border-brass: color-mix(in oklab, var(--color-gold-brass) 80%, var(--color-gold-bright) 20%);
+    --border-brass-subtle: color-mix(in oklab, var(--color-gold-brass) 45%, transparent);
+
+    --font-display: "Georgia", "Palatino Linotype", "Book Antiqua", serif;
+    --font-body: "Optima", "Candara", "Trebuchet MS", system-ui, sans-serif;
+
+    --scroll-progress: 0;
+    --crank-angle: 0deg;
+
+    timeline-scope: --tl-hero, --tl-opening;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-night-espresso);
+    color: var(--color-parchment);
+    font-family: var(--font-body);
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
+  }
+
+  body {
+    min-block-size: 100vh;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 50% 25%, rgba(212, 155, 53, 0.16), transparent 60%),
+      radial-gradient(circle at 80% 15%, rgba(185, 37, 37, 0.14), transparent 45%),
+      linear-gradient(180deg, #1a0c06 0%, #0f0704 100%);
+  }
+}
+
+@layer components {
+  /* Fixed 3D Stage & Viewport */
+  .stage-viewport {
+    position: fixed;
+    inset: 0;
+    inline-size: 100vw;
+    block-size: 100vh;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  #toybox-canvas {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+    pointer-events: auto;
+  }
+
+  /* Fallback Overlay Container with 3D perspective for vertical front-over-back card flips */
+  .hic-fallback-layer {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 3;
+    perspective: 1150px;
+    perspective-origin: 58% 52%;
+  }
+
+  /* Ornate Top Workshop HUD */
+  .workshop-hud {
+    position: absolute;
+    inset-block-start: 0.85rem;
+    inset-inline: 1.25rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.55rem;
+    padding-inline: 1rem;
+    background: var(--surface-hud);
+    border: 2px solid var(--border-brass);
+    border-radius: 14px / 18px;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.65),
+      inset 0 1px 0 rgba(255, 216, 107, 0.35);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+  }
+
+  .hud-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .hud-crest {
+    display: grid;
+    place-items: center;
+    inline-size: 2.3rem;
+    block-size: 2.3rem;
+    font-size: 1.3rem;
+    background: linear-gradient(135deg, var(--color-crimson), var(--color-crimson-deep));
+    border: 2px solid var(--color-gold-bright);
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(255, 216, 107, 0.35);
+  }
+
+  .hud-title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--color-gold-bright);
+  }
+
+  .hud-subtitle {
+    display: block;
+    font-size: 0.76rem;
+    color: color-mix(in oklab, var(--color-parchment) 80%, var(--color-gold-brass));
+  }
+
+  .hud-medallions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .medallion-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding-block: 0.32rem;
+    padding-inline: 0.58rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-mahogany-warm) 75%, black 25%);
+    border: 1px solid var(--border-brass-subtle);
+    color: var(--color-parchment);
+    font-size: 0.76rem;
+    font-weight: 600;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .medallion-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: color-mix(in oklab, var(--color-crimson) 60%, var(--color-mahogany-warm));
+    border-color: var(--color-gold-bright);
+  }
+
+  .medallion-btn.is-active {
+    background: linear-gradient(135deg, var(--color-gold-brass), var(--color-gold-antique));
+    color: var(--color-ink-dark);
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 0 14px rgba(255, 216, 107, 0.45);
+  }
+
+  .hud-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-hud-key,
+  .btn-hud-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-block: 0.42rem;
+    padding-inline: 0.8rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1.5px solid var(--color-gold-bright);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .btn-hud-key {
+    background: linear-gradient(135deg, var(--color-gold-bright), var(--color-gold-brass));
+    color: var(--color-ink-dark);
+  }
+
+  .btn-hud-info {
+    background: linear-gradient(135deg, var(--color-pine-green), var(--color-pine-deep));
+    color: var(--color-parchment);
+  }
+
+  .btn-hud-key:hover:not(:disabled),
+  .btn-hud-info:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 0 16px rgba(255, 216, 107, 0.45);
+  }
+
+  .key-icon {
+    display: inline-block;
+    transform: rotate(var(--crank-angle));
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Drawable HTML-in-Canvas Cards (.hic-card) with 3D Front-over-Back Flip Support */
+  .hic-card {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    transform-origin: 50% 50%;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.55), transparent 55%),
+      linear-gradient(160deg, var(--surface-card) 0%, var(--surface-card-inner) 100%);
+    color: var(--color-ink-dark);
+    border: 3px solid var(--color-gold-brass);
+    outline: 2px solid var(--color-mahogany-warm);
+    border-radius: 18px / 22px;
+    box-shadow:
+      0 22px 50px rgba(0, 0, 0, 0.68),
+      0 0 28px rgba(255, 216, 107, 0.28),
+      inset 0 0 0 3px rgba(140, 92, 22, 0.28);
+    padding: 1.2rem 1.35rem;
+    pointer-events: auto;
+    user-select: text;
+    will-change: transform, opacity;
+  }
+
+  /* 3D Engraved Brass & Mahogany Back-Face visible when card spins front-over-back */
+  .hic-card-back {
+    position: absolute;
+    inset: -3px;
+    border-radius: 18px / 22px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255, 216, 107, 0.28), transparent 70%),
+      repeating-linear-gradient(
+        45deg,
+        rgba(212, 155, 53, 0.08) 0px,
+        rgba(212, 155, 53, 0.08) 10px,
+        rgba(36, 17, 8, 0.96) 10px,
+        rgba(36, 17, 8, 0.96) 20px
+      ),
+      linear-gradient(145deg, #2d1409, #150904);
+    border: 3px solid var(--color-gold-bright);
+    box-shadow:
+      inset 0 0 24px rgba(255, 216, 107, 0.35),
+      0 18px 40px rgba(0, 0, 0, 0.75);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 1.25rem;
+    text-align: center;
+    color: var(--color-gold-bright);
+    transform: rotateX(180deg) translateZ(1px);
+    backface-visibility: hidden;
+    pointer-events: none;
+  }
+
+  .hic-card-back-seal {
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 216, 107, 0.6));
+  }
+
+  .hic-card-back-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold-bright);
+  }
+
+  .hic-card-back-sub {
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--color-parchment);
+    background: rgba(212, 155, 53, 0.2);
+    border: 1px solid var(--border-brass);
+    padding-block: 0.25rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+  }
+
+  /* Hero Plaque Card */
+  .hic-hero-card {
+    inline-size: min(500px, 90vw);
+    text-align: center;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255, 216, 107, 0.35), transparent 65%),
+      linear-gradient(165deg, #2a1308 0%, #190b04 100%);
+    color: var(--color-parchment);
+    border: 3px solid var(--color-gold-bright);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.8),
+      0 0 35px rgba(212, 155, 53, 0.35),
+      inset 0 0 22px rgba(212, 155, 53, 0.2);
+  }
+
+  .hic-card-ornament {
+    font-size: 0.9rem;
+    letter-spacing: 0.35em;
+    color: var(--color-gold-bright);
+    margin-block-end: 0.35rem;
+  }
+
+  .hic-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-gold-bright);
+    background: rgba(212, 155, 53, 0.16);
+    padding-block: 0.22rem;
+    padding-inline: 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-brass-subtle);
+  }
+
+  .hic-hero-card h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.45rem);
+    color: var(--color-gold-bright);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+    margin-block: 0.45rem 0.4rem;
+  }
+
+  .hic-lead {
+    font-size: 0.92rem;
+    line-height: 1.48;
+    color: color-mix(in oklab, var(--color-parchment) 90%, var(--color-gold-bright));
+    margin-block-end: 0.9rem;
+  }
+
+  .hic-hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-block-end: 0.75rem;
+  }
+
+  .btn-ornate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding-block: 0.55rem;
+    padding-inline: 1rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    border: 2px solid var(--color-gold-bright);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .btn-ornate:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 22px rgba(255, 216, 107, 0.35);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--color-gold-bright), var(--color-gold-brass));
+    color: var(--color-ink-dark);
+  }
+
+  .btn-crimson {
+    background: linear-gradient(135deg, var(--color-crimson), var(--color-crimson-deep));
+    color: var(--color-parchment);
+  }
+
+  .hic-shader-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    padding-block: 0.25rem;
+    padding-inline: 0.65rem;
+    border-radius: 999px;
+    background: rgba(30, 89, 56, 0.55);
+    border: 1px solid rgba(168, 230, 255, 0.45);
+    color: var(--color-frost-cyan);
+  }
+
+  /* Item Collector Cards (#hic-card-0 .. #hic-card-8) */
+  .hic-item-card {
+    inline-size: min(510px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .hic-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-block-end: 1.5px solid rgba(140, 92, 22, 0.3);
+    padding-block-end: 0.45rem;
+  }
+
+  .hic-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding-block: 0.22rem;
+    padding-inline: 0.65rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-parchment);
+  }
+
+  .hic-badge-artisan {
+    background: var(--color-pine-green);
+    border: 1px solid var(--color-gold-brass);
+  }
+
+  .hic-badge-miner {
+    background: #4a3525;
+    border: 1px solid var(--color-gold-brass);
+  }
+
+  .hic-badge-forge {
+    background: var(--color-crimson-deep);
+    border: 1px solid var(--color-gold-bright);
+  }
+
+  .hic-badge-contraption {
+    background: var(--color-gold-antique);
+    border: 1px solid var(--color-ink-dark);
+  }
+
+  .hic-badge-festive {
+    background: var(--color-crimson);
+    border: 1px solid var(--color-gold-bright);
+  }
+
+  .hic-slot-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--color-gold-antique);
+  }
+
+  .hic-card-body {
+    display: grid;
+    grid-template-columns: 128px 1fr;
+    gap: 0.95rem;
+    align-items: center;
+  }
+
+  .hic-portrait-frame {
+    inline-size: 128px;
+    block-size: 128px;
+    border-radius: 16px;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(255, 216, 107, 0.45), rgba(36, 17, 8, 0.92));
+    border: 2.5px solid var(--color-gold-brass);
+    box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.6);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  .hic-sprite-preview {
+    inline-size: 118px;
+    block-size: 118px;
+    object-fit: contain;
+  }
+
+  .hic-card-copy h2 {
+    font-family: var(--font-display);
+    font-size: 1.28rem;
+    line-height: 1.2;
+    color: var(--color-ink-dark);
+  }
+
+  .hic-role {
+    font-size: 0.77rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-crimson-deep);
+    margin-block: 0.15rem 0.45rem;
+  }
+
+  .hic-quip {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 0.94rem;
+    line-height: 1.35;
+    color: var(--color-ink-dark);
+    background: rgba(212, 155, 53, 0.22);
+    border-inline-start: 3.5px solid var(--color-crimson);
+    padding-block: 0.35rem;
+    padding-inline: 0.6rem;
+    border-radius: 0 8px 8px 0;
+    margin-block-end: 0.45rem;
+  }
+
+  .hic-lore {
+    font-size: 0.82rem;
+    line-height: 1.42;
+    color: var(--color-ink-muted);
+  }
+
+  .hic-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-block-start: 1.5px solid rgba(140, 92, 22, 0.28);
+    padding-block-start: 0.55rem;
+  }
+
+  .hic-stat-group {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.76rem;
+    color: var(--color-ink-muted);
+  }
+
+  .hic-stat em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--color-ink-dark);
+  }
+
+  .hic-card-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn-card-nav {
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 8px;
+    background: var(--color-mahogany-warm);
+    color: var(--color-gold-bright);
+    border: 1.5px solid var(--color-gold-brass);
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+
+  .btn-card-nav:hover:not(:disabled) {
+    transform: scale(1.08);
+    background: var(--color-crimson);
+  }
+
+  .btn-card-action,
+  .btn-card-flip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    padding-block: 0.38rem;
+    padding-inline: 0.68rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--color-gold-brass);
+    font-size: 0.76rem;
+    font-weight: 700;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-card-action {
+    background: linear-gradient(135deg, var(--color-pine-green), var(--color-pine-deep));
+    color: var(--color-parchment);
+  }
+
+  .btn-card-flip {
+    background: linear-gradient(135deg, var(--color-crimson), var(--color-crimson-deep));
+    color: var(--color-parchment);
+  }
+
+  .btn-card-action:hover:not(:disabled),
+  .btn-card-flip:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 4px 12px rgba(212, 155, 53, 0.45);
+  }
+
+  /* Bottom Scroll Progress HUD */
+  .scroll-hud {
+    position: absolute;
+    inset-block-end: 0.9rem;
+    inset-inline: 50%;
+    transform: translateX(-50%);
+    inline-size: min(560px, 90vw);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.38rem;
+    pointer-events: none;
+  }
+
+  .scroll-progress-track {
+    inline-size: 100%;
+    block-size: 8px;
+    background: rgba(18, 9, 5, 0.82);
+    border: 1.5px solid var(--border-brass);
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+
+  .scroll-progress-fill {
+    inline-size: 100%;
+    block-size: 100%;
+    background: linear-gradient(90deg, var(--color-crimson), var(--color-gold-bright), var(--color-pine-green));
+    transform-origin: 0 50%;
+    transform: scaleX(var(--scroll-progress));
+  }
+
+  .scroll-prompt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-block: 0.28rem;
+    padding-inline: 0.9rem;
+    background: var(--surface-hud);
+    border: 1px solid var(--border-brass-subtle);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    color: var(--color-gold-bright);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Native Modal Dialog */
+  .ornate-dialog {
+    margin: auto;
+    inline-size: min(580px, 92vw);
+    background: linear-gradient(165deg, var(--color-mahogany-deep), var(--color-night-espresso));
+    color: var(--color-parchment);
+    border: 3px solid var(--color-gold-bright);
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
+  }
+
+  .ornate-dialog::backdrop {
+    background: rgba(8, 4, 2, 0.75);
+    backdrop-filter: blur(6px);
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: 1rem;
+    border-block-end: 1px solid var(--border-brass-subtle);
+    padding-block-end: 0.65rem;
+  }
+
+  .dialog-header h2 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--color-gold-bright);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .btn-dialog-close {
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-brass);
+    color: var(--color-gold-bright);
+  }
+
+  .dialog-content {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .dialog-content ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-inline-start: 1rem;
+    list-style: disc;
+  }
+
+  .dialog-content code {
+    background: rgba(255, 216, 107, 0.14);
+    color: var(--color-gold-bright);
+    padding-inline: 0.3rem;
+    border-radius: 4px;
+  }
+
+  .dialog-footer {
+    margin-block-start: 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Scrollytelling Track & Uniform 100vh Mandatory Snap Steps */
+  .scroll-track {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .scroll-step {
+    block-size: 100vh;
+    inline-size: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .step-hero {
+    view-timeline: --tl-hero block;
+  }
+
+  .step-opening {
+    view-timeline: --tl-opening block;
+  }
+
+  /* Native CSS Scroll-Driven Animation Enhancement */
+  @supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+    @keyframes fill-scroll-bar {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .scroll-progress-fill {
+      animation: fill-scroll-bar auto linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0% 100%;
+    }
+  }
+}
+
+@layer utilities {
+  @media (max-width: 820px) {
+    .workshop-hud {
+      flex-wrap: wrap;
+      padding-block: 0.45rem;
+      padding-inline: 0.75rem;
+    }
+
+    .medallion-name {
+      display: none;
+    }
+
+    .hic-card-body {
+      grid-template-columns: 96px 1fr;
+    }
+
+    .hic-portrait-frame {
+      inline-size: 96px;
+      block-size: 96px;
+    }
+
+    .hic-sprite-preview {
+      inline-size: 88px;
+      block-size: 88px;
+    }
+  }
+
+  /* MANDATORY Copy-Paste Safety: Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    .scroll-progress-fill,
+    .medallion-btn,
+    .btn-ornate,
+    .key-icon {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* Forced Colors Mode Accessibility Support */
+  @media (forced-colors: active) {
+    .workshop-hud,
+    .hic-card,
+    .ornate-dialog,
+    .btn-ornate,
+    .medallion-btn {
+      border: 2px solid CanvasText;
+    }
+
+    .medallion-btn.is-active {
+      outline: 3px solid Highlight;
+    }
+  }
+}

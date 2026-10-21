@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>The Rainforest of Information — 3D Living DNA Vines &amp; Interactive Canopy</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" as="image" href="./assets/liana_bark.jpg" fetchpriority="high" crossorigin="anonymous">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- Top Botanical Canopy HUD & Quick-Jump Vine Node Navigation -->
+  <header class="canopy-hud" aria-label="Rainforest Canopy Depth and Navigation">
+    <div class="hud-brand">
+      <span class="hud-emblem" aria-hidden="true">🌿</span>
+      <div class="hud-brand-text">
+        <span class="hud-eyebrow">Living 3D Botanical Archive • HTML-in-Canvas</span>
+        <strong id="hud-stage-title" class="hud-stage-title">Crown Canopy: The Rainforest of Information</strong>
+      </div>
+    </div>
+
+    <nav class="hud-vine-nav" aria-label="Sprouting Leaf Sections">
+      <button type="button" class="vine-node-btn is-active" data-step-target="0" aria-current="location" title="Crown Canopy Intro">
+        <span class="node-dot"></span>
+        <span class="node-label">0. Crown</span>
+      </button>
+      <button type="button" class="vine-node-btn" data-step-target="1" title="Left Vine Leaf 1: Sloth Bathroom Drama">
+        <span class="node-dot node-left"></span>
+        <span class="node-label">1. Sloth Fact</span>
+      </button>
+      <button type="button" class="vine-node-btn" data-step-target="2" title="Right Vine Leaf 2: Exploding Grenade Tree">
+        <span class="node-dot node-right"></span>
+        <span class="node-label">2. Grenade Tree</span>
+      </button>
+      <button type="button" class="vine-node-btn" data-step-target="3" title="Left Vine Leaf 3: 116dB Piha &amp; Decoy Spider">
+        <span class="node-dot node-left"></span>
+        <span class="node-label">3. Decoy Spider</span>
+      </button>
+      <button type="button" class="vine-node-btn" data-step-target="4" title="Right Vine Leaf 4: Canopy Newsletter Form">
+        <span class="node-dot node-right"></span>
+        <span class="node-label">4. Newsletter</span>
+      </button>
+      <button type="button" class="vine-node-btn" data-step-target="5" title="Left Vine Leaf 5: Multiple-Choice Rainforest Exam">
+        <span class="node-dot node-left"></span>
+        <span class="node-label">5. Quiz</span>
+      </button>
+      <button type="button" class="vine-node-btn node-fire" data-step-target="6" title="Right Vine Leaf 6: The Burning Rainforest">
+        <span class="node-dot node-right"></span>
+        <span class="node-label">6. Burning Leaf</span>
+      </button>
+      <button type="button" class="vine-node-btn node-braid" data-step-target="7" title="Finale: Braided Vines &amp; Protect the Rainforest">
+        <span class="node-dot"></span>
+        <span class="node-label">7. Act Now</span>
+      </button>
+    </nav>
+
+    <div class="hud-telemetry">
+      <div class="telemetry-pill" title="Current Rainforest Elevation">
+        <span aria-hidden="true">🌡️</span>
+        <span id="hud-depth-readout">Elevation: 65m (Emergent Crown)</span>
+      </div>
+      <button type="button" id="btn-open-arch-modal" class="btn-hud-info">
+        <span aria-hidden="true">✨</span>
+        <span>3D Shader &amp; HIC Info</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Bottom Scrollytelling Prompt & Vine Helix Indicator -->
+  <aside class="canopy-footer-bar" aria-live="polite">
+    <div class="vine-side-indicator">
+      <span class="helix-pill helix-left" id="pill-left-vine">🧬 Left DNA Liana Helix</span>
+      <span id="scroll-guide-text" class="scroll-guide-text">Scroll down to descend the twin twisting vines &amp; unfurl each sprouting leaf</span>
+      <span class="helix-pill helix-right" id="pill-right-vine">🧬 Right DNA Liana Helix</span>
+    </div>
+  </aside>
+
+  <!-- Fixed 3D Three.js Stage & HTML-in-Canvas Viewport -->
+  <div id="stage-viewport" class="stage-viewport">
+    <canvas id="rainforest-canvas" content="drawable" aria-label="3D Rainforest scene with two DNA-like twisted vines on each side and unfurling information leaves">
+
+      <!-- ================================================================== -->
+      <!-- STAGE 0: CROWN CANOPY HERO PLAQUE (drawable child 0)               -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-0" class="hic-leaf-card leaf-hero-crown" data-step="0" data-side="center" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-crown">
+            <span aria-hidden="true">🌴</span>
+            <span>EMERGENT CANOPY CROWN • 65 METERS ABOVE THE FOREST FLOOR</span>
+          </span>
+          <span class="leaf-serial">CANOPY // 00</span>
+        </header>
+
+        <div class="leaf-body">
+          <h1>The Rainforest of Information</h1>
+          <p class="leaf-lead">
+            Flanking this clearing are two ancient, living <strong>DNA-helix liana vines</strong> twisting down through the sunlit mist. As you scroll deeper into the understory, tropical leaves sprout alternately from the <strong>left</strong> and <strong>right</strong> vines—uncurling in 3D space and warping their living botanical pages into the center of your view.
+          </p>
+
+          <div class="hero-feature-grid">
+            <div class="hero-feature-item">
+              <span class="feature-icon" aria-hidden="true">🦥</span>
+              <div>
+                <strong>Absurdly True Biology</strong>
+                <span>Weekly sloth bathroom drama, frag-grenade trees &amp; 116dB birds.</span>
+              </div>
+            </div>
+            <div class="hero-feature-item">
+              <span class="feature-icon" aria-hidden="true">🧪</span>
+              <div>
+                <strong>Interactive Leaf Surfaces</strong>
+                <span>Type into live forms, take the field exam &amp; test botanical physics.</span>
+              </div>
+            </div>
+            <div class="hero-feature-item">
+              <span class="feature-icon" aria-hidden="true">🔥</span>
+              <div>
+                <strong>Fragile Canopy &amp; Braided Finale</strong>
+                <span>Witness how fast a leaf burns to ash, then watch the vines weave together.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-actions">
+            <button type="button" id="btn-start-descent" class="btn-botanical btn-emerald">
+              <span aria-hidden="true">🌱</span>
+              <span>Sprout First Leaf (Descend Vines)</span>
+            </button>
+            <button type="button" id="btn-pulse-spores" class="btn-botanical btn-gold">
+              <span aria-hidden="true">✨</span>
+              <span>Release Bioluminescent Spores</span>
+            </button>
+          </div>
+          <span id="hic-pipeline-badge" class="hic-pipeline-badge">HTML-in-Canvas + 3D Leaf Unfurl Shader Active</span>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 1: LEAF #1 (LEFT VINE) — FUN FACT #1: SLOTH BATHROOM DRAMA    -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-1" class="hic-leaf-card leaf-from-left" data-step="1" data-side="left" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-left">
+            <span aria-hidden="true">🌿</span>
+            <span>LEFT DNA VINE SPROUT • FUN &amp; 100% TRUE FACT #01</span>
+          </span>
+          <span class="leaf-serial">SPECIMEN // BRADYPUS</span>
+        </header>
+
+        <div class="leaf-body">
+          <h2>The Three-Toed Sloth’s High-Stakes Weekly Poo</h2>
+          <blockquote class="leaf-funny-pullquote">
+            “Imagine holding it in for seven days, climbing down 100 feet in slow-motion, doing a literal ‘poo dance,’ and losing ONE-THIRD of your entire body weight in a single sitting.”
+          </blockquote>
+          <p class="leaf-copy">
+            Three-toed sloths (<em>Bradypus tridactylus</em>) have a metabolism so glacially slow that a single meal of tough cecropia leaves takes up to <strong>a full month</strong> to digest. Because they refuse to simply drop bombs from the canopy like monkeys do, a sloth makes a perilous trek down to the forest floor just <strong>once a week</strong>.
+          </p>
+          <p class="leaf-copy">
+            Here’s the wild part: over <strong>50% of all sloth deaths</strong> happen during this weekly bathroom trip because jaguars and harpy eagles camp out downstairs! Why risk death to poop on the ground? Because a colony of specialized <strong>Sloth Moths</strong> lives exclusively in the sloth’s fur, waiting to lay eggs in the fresh dung—and when new moths hatch and fly up into the fur, their nutrients fertilize a lush hydroponic garden of green camouflage algae that the sloth snacks on!
+          </p>
+
+          <div class="leaf-interactive-box">
+            <div class="interactive-box-info">
+              <strong>🦥 Interactive Sloth Bathroom Scale &amp; Moth Counter</strong>
+              <span id="sloth-stat-readout" class="stat-readout">Current State: Belly 100% Full (7 days of fermented leaves) • Resident Moths: 124</span>
+            </div>
+            <button type="button" id="btn-sloth-dance" class="btn-botanical btn-emerald">
+              <span aria-hidden="true">🕺</span>
+              <span>Do the Weekly “Poo Dance” (-33% Body Weight!)</span>
+            </button>
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-meta-pills">
+            <span class="meta-pill">⏱️ Digestion Time: ~720 Hours</span>
+            <span class="meta-pill">🦋 Fur Ecosystem: Algae + 120 Moths</span>
+          </div>
+          <div class="leaf-nav-group">
+            <button type="button" class="btn-leaf-step" data-jump="0" aria-label="Previous section">▲ Crown</button>
+            <button type="button" class="btn-leaf-step" data-jump="2" aria-label="Next leaf">Next Leaf (Right Vine) ▼</button>
+          </div>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 2: LEAF #2 (RIGHT VINE) — FUN FACT #2: EXPLODING GRENADE TREE -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-2" class="hic-leaf-card leaf-from-right" data-step="2" data-side="right" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-right">
+            <span aria-hidden="true">💥</span>
+            <span>RIGHT DNA VINE SPROUT • FUN &amp; 100% TRUE FACT #02</span>
+          </span>
+          <span class="leaf-serial">SPECIMEN // HURA CREPITANS</span>
+        </header>
+
+        <div class="leaf-body">
+          <h2>The “Monkey-No-Climb” Tree That Fires 160 MPH Frag Grenades</h2>
+          <blockquote class="leaf-funny-pullquote">
+            “Most trees politely bribe toucans with sweet fruit to spread their seeds. The Sandbox Tree instead wears medieval spikes and Pelts the jungle with supersonic shrapnel.”
+          </blockquote>
+          <p class="leaf-copy">
+            Meet <em>Hura crepitans</em>, known across the Amazon as the <strong>“Monkey-No-Climb”</strong> or <strong>Dynamite Tree</strong>. First, its trunk is armored from root to crown in wicked, three-inch conical spikes so even the boldest capuchin monkey takes one look and walks away. Second, its caustic sap is so toxic that Indigenous fishers used it to stun fish and Caribbean warriors tipped darts with it.
+          </p>
+          <p class="leaf-copy">
+            But its pièce de résistance is its pumpkin-shaped seed pod. As the woody pod dries in the canopy heat, massive elastic tension builds inside its segments until—<strong>BANG!</strong>—it detonates with the decibel level of a pistol shot, launching flattened seeds at <strong>160 MPH (70 meters per second)</strong> over 140 feet away!
+          </p>
+
+          <div class="leaf-interactive-box">
+            <div class="interactive-box-info">
+              <strong>💣 Hura Crepitans Ballistic Pod Simulator</strong>
+              <span id="grenade-stat-readout" class="stat-readout">Pod Tension: 88 PSI (Armed) • Last Seed Shrapnel Distance: 0 ft</span>
+            </div>
+            <button type="button" id="btn-detonate-pod" class="btn-botanical btn-gold">
+              <span aria-hidden="true">💥</span>
+              <span>Detonate Seed Pod (160 MPH Launch!)</span>
+            </button>
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-meta-pills">
+            <span class="meta-pill">🚀 Muzzle Velocity: 160 MPH (257 km/h)</span>
+            <span class="meta-pill">🐒 Monkey Climb Rating: 0 / 10</span>
+          </div>
+          <div class="leaf-nav-group">
+            <button type="button" class="btn-leaf-step" data-jump="1" aria-label="Previous leaf">▲ Prev Leaf</button>
+            <button type="button" class="btn-leaf-step" data-jump="3" aria-label="Next leaf">Next Leaf (Left Vine) ▼</button>
+          </div>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 3: LEAF #3 (LEFT VINE) — FUN FACT #3: PIHA & DECOY SPIDER     -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-3" class="hic-leaf-card leaf-from-left" data-step="3" data-side="left" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-left">
+            <span aria-hidden="true">🕷️</span>
+            <span>LEFT DNA VINE SPROUT • FUN &amp; 100% TRUE FACT #03</span>
+          </span>
+          <span class="leaf-serial">SPECIMEN // CYCLOSA &amp; PIHA</span>
+        </header>
+
+        <div class="leaf-body">
+          <h2>The 116-Decibel Drama Bird &amp; The Spider With a Fake Stunt Double</h2>
+          <blockquote class="leaf-funny-pullquote">
+            “One tiny grey bird screams louder than a chainsaw just to say ‘Notice me!’, while a 5mm spider sculpts a giant fake boss-spider out of dead bugs to bamboozle wasps.”
+          </blockquote>
+          <p class="leaf-copy">
+            If you’ve ever watched a hollywood jungle movie, that iconic *"wee-ti-ti-YOOO!"* whistle is the <strong>Screaming Piha</strong>—a drab, robin-sized grey bird whose lungs and syrinx blast mating calls at <strong>116 decibels</strong> (louder than a rock concert or pneumatic drill), deafening every neighbor on the branch just to show off its beige feathers.
+          </p>
+          <p class="leaf-copy">
+            Meanwhile, in the Peruvian Amazon floodplains, a tiny 5-millimeter orb-weaver (<em>Cyclosa</em> sp.) takes the opposite approach. It meticulously collects dead insect carcasses, moss, and egg sacs and sculpts a <strong>giant, 25-millimeter anatomical decoy spider—complete with eight legs, head, and thorax</strong>—right in the middle of its web! When a predatory wasp approaches, the real tiny spider hides at the edge and shakes the web threads so its giant trash-golem "moves" like a terrifying monster!
+          </p>
+
+          <div class="leaf-interactive-box">
+            <div class="interactive-box-info">
+              <strong>🎭 Jungle Drama &amp; Decoy Puppeteer Console</strong>
+              <span id="decoy-stat-readout" class="stat-readout">Web Decoy Status: 8 Legs Sculpted • Predators Bamboozled Today: 14</span>
+            </div>
+            <div class="leaf-btn-row">
+              <button type="button" id="btn-shake-decoy" class="btn-botanical btn-emerald">
+                <span aria-hidden="true">🕸️</span>
+                <span>Puppeteer Giant Decoy Spider</span>
+              </button>
+              <button type="button" id="btn-piha-call" class="btn-botanical btn-gold">
+                <span aria-hidden="true">📢</span>
+                <span>Blast 116dB Piha Whistle</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-meta-pills">
+            <span class="meta-pill">🔊 Piha Volume: 116 dB (Chainsaw Tier)</span>
+            <span class="meta-pill">🕷️ Decoy Scale: 5× Real Spider Size</span>
+          </div>
+          <div class="leaf-nav-group">
+            <button type="button" class="btn-leaf-step" data-jump="2" aria-label="Previous leaf">▲ Prev Leaf</button>
+            <button type="button" class="btn-leaf-step" data-jump="4" aria-label="Next leaf">Next Leaf (Right Vine) ▼</button>
+          </div>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 4: LEAF #4 (RIGHT VINE) — INTERACTIVE NEWSLETTER SIGN-UP     -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-4" class="hic-leaf-card leaf-from-right" data-step="4" data-side="right" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-right">
+            <span aria-hidden="true">✉️</span>
+            <span>RIGHT DNA VINE SPROUT • LEAF #04 • INTERACTIVE CANOPY FORM</span>
+          </span>
+          <span class="leaf-serial">DISPATCH // SUBSCRIPTION</span>
+        </header>
+
+        <div class="leaf-body">
+          <h2>Sign Up for “The Canopy Dispatch”</h2>
+          <p class="leaf-copy">
+            Type directly into this living leaf to receive our bi-weekly expedition notes: newly discovered rainforest species, weird evolutionary arms races, and frontline conservation victories.
+          </p>
+
+          <!-- TODO(security): In a multi-user production deployment, validate the anti-CSRF token and rate-limit POST /subscribe on a dedicated Backend-for-Frontend (BFF) server. -->
+          <form id="newsletter-form" class="leaf-newsletter-form" action="#subscribe" method="POST" novalidate>
+            <input type="hidden" id="csrf-token-field" name="csrf_token" value="canopy-csrf-v1">
+
+            <div class="form-row-two-col">
+              <div class="form-field">
+                <label for="explorer-name">Explorer Full Name <span class="req-star" aria-hidden="true">*</span></label>
+                <span id="name-hint" class="field-hint">2–80 characters (any language)</span>
+                <input
+                  type="text"
+                  id="explorer-name"
+                  name="full_name"
+                  required
+                  minlength="2"
+                  maxlength="80"
+                  autocomplete="name"
+                  placeholder="Dr. Ines Aranha"
+                  aria-describedby="name-hint"
+                  aria-errormessage="name-error"
+                >
+                <div id="name-error" class="field-error-msg">
+                  <span aria-hidden="true">⚠️</span> Please enter your explorer name (at least 2 characters).
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="explorer-email">Canopy Comms Email <span class="req-star" aria-hidden="true">*</span></label>
+                <span id="email-hint" class="field-hint">Format: explorer@rainforest.org</span>
+                <input
+                  type="email"
+                  id="explorer-email"
+                  name="email"
+                  required
+                  maxlength="120"
+                  autocomplete="email"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  placeholder="ines@canopy-expedition.org"
+                  aria-describedby="email-hint"
+                  aria-errormessage="email-error"
+                >
+                <div id="email-error" class="field-error-msg">
+                  <span aria-hidden="true">⚠️</span> Please enter a valid email address.
+                </div>
+              </div>
+            </div>
+
+            <fieldset class="courier-fieldset">
+              <legend>Preferred Botanical Delivery Courier (Select One):</legend>
+              <div class="courier-radio-grid">
+                <label class="courier-option">
+                  <input type="radio" name="courier" value="Harpy Eagle Express" checked>
+                  <span class="courier-text">🦅 <strong>Harpy Eagle Express</strong> <em>(Instant Air-Drop)</em></span>
+                </label>
+                <label class="courier-option">
+                  <input type="radio" name="courier" value="Three-Toed Sloth Courier">
+                  <span class="courier-text">🦥 <strong>Three-Toed Sloth</strong> <em>(Arrives in 4–6 Weeks)</em></span>
+                </label>
+                <label class="courier-option">
+                  <input type="radio" name="courier" value="Exploding Hura Pod">
+                  <span class="courier-text">💥 <strong>Exploding Hura Pod</strong> <em>(160 MPH — Wear Helmet)</em></span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="form-submit-row">
+              <button type="submit" id="btn-newsletter-submit" class="btn-botanical btn-emerald">
+                <span aria-hidden="true">🌿</span>
+                <span>Inscribe onto the Canopy Dispatch</span>
+              </button>
+              <div id="newsletter-feedback" class="newsletter-feedback" role="status" aria-live="polite">
+                Ready for inscription — fill out the leaf above!
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-meta-pills">
+            <span class="meta-pill">🔒 Zero Spam (Even from Pihas)</span>
+            <span class="meta-pill">🌱 100% Chlorophyll-Powered</span>
+          </div>
+          <div class="leaf-nav-group">
+            <button type="button" class="btn-leaf-step" data-jump="3" aria-label="Previous leaf">▲ Prev Leaf</button>
+            <button type="button" class="btn-leaf-step" data-jump="5" aria-label="Next leaf">Next Leaf (Left Vine) ▼</button>
+          </div>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 5: LEAF #5 (LEFT VINE) — MULTIPLE-CHOICE RAINFOREST QUIZ     -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-5" class="hic-leaf-card leaf-from-left" data-step="5" data-side="left" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-left">
+            <span aria-hidden="true">🎓</span>
+            <span>LEFT DNA VINE SPROUT • LEAF #05 • MULTIPLE-CHOICE FIELD EXAM</span>
+          </span>
+          <span id="quiz-score-badge" class="leaf-serial">SCORE: 0 / 3 CORRECT</span>
+        </header>
+
+        <div class="leaf-body">
+          <div class="quiz-top-bar">
+            <h2>Rainforest Survival &amp; Weirdness Exam</h2>
+            <div class="quiz-question-tabs" role="tablist" aria-label="Quiz Questions">
+              <button type="button" class="quiz-tab-btn is-active" data-qindex="0" role="tab" aria-selected="true">Q1: Clay Licks</button>
+              <button type="button" class="quiz-tab-btn" data-qindex="1" role="tab" aria-selected="false">Q2: Zombie Ants</button>
+              <button type="button" class="quiz-tab-btn" data-qindex="2" role="tab" aria-selected="false">Q3: Flying Rivers</button>
+            </div>
+          </div>
+
+          <div id="quiz-question-box" class="quiz-question-box">
+            <p id="quiz-prompt-text" class="quiz-prompt-text">
+              Question 1 of 3: Why do hundreds of vivid Amazonian macaws and parrots gather every morning to eat literal riverbank clay?
+            </p>
+
+            <div id="quiz-choices-grid" class="quiz-choices-grid" role="group" aria-label="Answer Choices">
+              <button type="button" class="quiz-choice-btn" data-choice="0">
+                <span class="choice-letter">A</span>
+                <span class="choice-label">They lost a high-stakes bet with a keel-billed toucan</span>
+              </button>
+              <button type="button" class="quiz-choice-btn" data-choice="1">
+                <span class="choice-letter">B</span>
+                <span class="choice-label">The clay binds to and neutralizes deadly alkaloids &amp; toxins in the unripe seeds they eat (plus adds vital sodium!)</span>
+              </button>
+              <button type="button" class="quiz-choice-btn" data-choice="2">
+                <span class="choice-letter">C</span>
+                <span class="choice-label">To weigh themselves down so canopy updrafts don’t blow them over the Andes</span>
+              </button>
+              <button type="button" class="quiz-choice-btn" data-choice="3">
+                <span class="choice-letter">D</span>
+                <span class="choice-label">To polish their beaks into mirror finishes before mating season</span>
+              </button>
+            </div>
+
+            <div id="quiz-explanation-banner" class="quiz-explanation-banner" aria-live="polite">
+              <span>👆 Click an answer choice on this leaf to test your rainforest field instincts!</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-actions">
+            <button type="button" id="btn-quiz-next" class="btn-botanical btn-emerald">
+              <span>Next Question (Q2) ▶</span>
+            </button>
+            <button type="button" id="btn-quiz-reset" class="btn-botanical btn-subtle">
+              <span>↺ Reset Exam</span>
+            </button>
+          </div>
+          <div class="leaf-nav-group">
+            <button type="button" class="btn-leaf-step" data-jump="4" aria-label="Previous leaf">▲ Prev Leaf</button>
+            <button type="button" class="btn-leaf-step" data-jump="6" aria-label="Next leaf">Next Leaf (Right Vine) ▼</button>
+          </div>
+        </footer>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 6: LEAF #6 (RIGHT VINE) — THE BURNING RAINFOREST & REMAINS   -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-6" class="hic-leaf-card leaf-from-right leaf-burnable" data-step="6" data-side="right" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <!-- Live 2D Fire & Ember Canvas Overlay for synchronized DOM flame & char effect -->
+        <canvas id="leaf-fire-overlay" class="leaf-fire-overlay" width="680" height="420" aria-hidden="true"></canvas>
+
+        <!-- STATE A: UNBURNED / IGNITING LEAF CONTENT -->
+        <div id="burn-state-intact" class="burn-state-container">
+          <header class="leaf-header">
+            <span class="leaf-sprout-badge badge-fire-warning">
+              <span aria-hidden="true">🔥</span>
+              <span>RIGHT DNA VINE SPROUT • LEAF #06 • CANOPY IN PERIL</span>
+            </span>
+            <span id="burn-status-pill" class="leaf-serial">STATUS // LIVING CANOPY</span>
+          </header>
+
+          <div class="leaf-body">
+            <h2>What Took 10 Million Years to Grow Turns to Ash in Seconds</h2>
+            <p class="leaf-copy">
+              Every single minute, an area of tropical rainforest the size of <strong>18 football fields</strong> is slashed and burned. Unlike dry savannas that evolved with seasonal brushfires, the humid tropical rainforest <strong>never evolved to survive fire</strong>. Its bark is paper-thin. Its nutrient cycle lives entirely inside the living leaves and mycorrhizal roots.
+            </p>
+            <p class="leaf-copy">
+              When fires sweep through the Amazon, the sloth’s month-old canopy meals, the decoy spider’s silk sculptures, and uncatalogued medicinal plants vanish together in an instant—leaving behind silent, blackened earth that takes centuries to heal.
+            </p>
+
+            <div class="burn-trigger-panel">
+              <div class="burn-trigger-copy">
+                <strong>Witness the Irreversible Cost of Canopy Fire</strong>
+                <span>Pressing this button will ignite this leaf in a 3D &amp; DOM fire simulation. If you scroll away and come back later, only the burned-off ash remains will be waiting.</span>
+              </div>
+              <button type="button" id="btn-ignite-leaf" class="btn-ignite-fire">
+                <span aria-hidden="true">🔥</span>
+                <span id="btn-ignite-label">Ignite This Leaf</span>
+              </button>
+            </div>
+          </div>
+
+          <footer class="leaf-footer">
+            <div class="leaf-meta-pills">
+              <span class="meta-pill pill-danger">⚠️ Loss Rate: ~18 Football Fields / Minute</span>
+              <span class="meta-pill">🌧️ Tipping Point: ~20–25% Deforestation</span>
+            </div>
+            <div class="leaf-nav-group">
+              <button type="button" class="btn-leaf-step" data-jump="5" aria-label="Previous leaf">▲ Prev Leaf</button>
+              <button type="button" class="btn-leaf-step" data-jump="7" aria-label="Next section">Finale (Braided Vines) ▼</button>
+            </div>
+          </footer>
+        </div>
+
+        <!-- STATE B: CHARRED SKELETAL REMAINS (Shown after fire and when scrolling back!) -->
+        <div id="burn-state-remains" class="burn-state-container is-hidden" aria-live="polite">
+          <header class="leaf-header">
+            <span class="leaf-sprout-badge badge-charred">
+              <span aria-hidden="true">🥀</span>
+              <span>BURNED REMAINS • SCORCHED PETIOLE &amp; COLD ASH</span>
+            </span>
+            <span class="leaf-serial">CANOPY LOST // 100% CHARRED</span>
+          </header>
+
+          <div class="leaf-body">
+            <h2>Only Blackened Veins and Silent Ash Remain</h2>
+            <blockquote class="leaf-sad-quote">
+              “It took less than four seconds for the flames to consume this leaf. Yet no matter how many times you scroll away and return, the forest cannot simply snap back.”
+            </blockquote>
+            <p class="leaf-copy">
+              What you see left on this vine is the haunting reality of primary rainforest loss. Once a tropical canopy is burned, the torrential rains wash away the exposed topsoil within weeks. Without the trees transpiring moisture back into the sky, the local microclimate dries out, turning lush jungle into degraded scrubland.
+            </p>
+            <p class="leaf-copy">
+              Botanists estimate it takes <strong>200 to 500 years</strong> for a burned primary rainforest to recover its original biomass and canopy structure—and the endemic species lost in the fire are gone forever. That is why protecting standing rainforests <em>before</em> they burn is everything.
+            </p>
+
+            <div class="charred-recovery-meter">
+              <div class="recovery-meter-text">
+                <strong>⏳ Estimated Natural Regrowth Time: ~250 Years</strong>
+                <span id="charred-elapsed-text">Time elapsed since this leaf burned: 0s (0.0000001% of recovery)</span>
+              </div>
+              <button type="button" id="btn-fastforward-regrowth" class="btn-botanical btn-charred-restore" title="Optional: Fast-forward 250 years to test the leaf again">
+                <span aria-hidden="true">🌱</span>
+                <span>Fast-Forward 250 Years (Regrow for Demo)</span>
+              </button>
+            </div>
+          </div>
+
+          <footer class="leaf-footer">
+            <div class="leaf-meta-pills">
+              <span class="meta-pill pill-ash">🖤 Biomass Remaining: Skeletal Carbon</span>
+              <span class="meta-pill pill-ash">⏳ Full Biodiversity Recovery: Centuries</span>
+            </div>
+            <div class="leaf-nav-group">
+              <button type="button" class="btn-leaf-step" data-jump="5" aria-label="Previous leaf">▲ Prev Leaf</button>
+              <button type="button" class="btn-leaf-step" data-jump="7" aria-label="Next section">See How to Protect It ▼</button>
+            </div>
+          </footer>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 7: FINALE — VINES BRAID IN CENTER & FORM 3D LIVING TEXT      -->
+      <!-- ================================================================== -->
+      <article id="leaf-card-7" class="hic-leaf-card leaf-finale-braid" data-step="7" data-side="center" drawable>
+        <div class="leaf-vein-watermark" aria-hidden="true"></div>
+        <header class="leaf-header">
+          <span class="leaf-sprout-badge badge-braid">
+            <span aria-hidden="true">🧬</span>
+            <span>CONVERGENCE FINALE • THE TWIN VINES WEAVE TOGETHER IN THE CENTER</span>
+          </span>
+          <span id="pledge-counter-badge" class="leaf-serial">CANOPY BLOOMS: 12 ACTIVE</span>
+        </header>
+
+        <div class="leaf-body">
+          <h2>Intertwined for Survival: Protect the Living Rainforest</h2>
+          <p class="leaf-copy">
+            Look behind and above this canopy cradle: the <strong>Left</strong> and <strong>Right DNA liana vines</strong> have grown closer and closer together, braiding into a single central column and weaving their living tendrils into the 3D message <strong>“PROTECT THE RAINFOREST”</strong>. Just like those twin strands, human survival and the tropical canopy are inextricably intertwined.
+          </p>
+
+          <div class="engagement-pillars-grid">
+            <div class="engagement-pillar">
+              <div class="pillar-top">
+                <span class="pillar-icon" aria-hidden="true">🛡️</span>
+                <strong>1. Back Indigenous Guardianship</strong>
+              </div>
+              <p>
+                Indigenous territories experience up to <strong>80% lower deforestation</strong> than unmanaged lands. Supporting organizations like <em>Amazon Watch</em> and <em>Rainforest Foundation</em> defends sovereign land rights on the frontlines.
+              </p>
+              <button type="button" class="btn-pledge-action" data-pledge="indigenous">
+                <span>🌺 Pledge: Stand with Indigenous Stewards</span>
+              </button>
+            </div>
+
+            <div class="engagement-pillar">
+              <div class="pillar-top">
+                <span class="pillar-icon" aria-hidden="true">🌳</span>
+                <strong>2. Lock In Permanent Reserves</strong>
+              </div>
+              <p>
+                Direct conservation groups like <em>Rainforest Trust</em> and <em>Cool Earth</em> purchase and legally title threatened primary corridors—often protecting an entire acre of ancient habitat for just a few dollars.
+              </p>
+              <button type="button" class="btn-pledge-action" data-pledge="reserve">
+                <span>🌺 Pledge: Sponsor Primary Canopy Acres</span>
+              </button>
+            </div>
+
+            <div class="engagement-pillar">
+              <div class="pillar-top">
+                <span class="pillar-icon" aria-hidden="true">🔍</span>
+                <strong>3. Deforestation-Free Daily Choices</strong>
+              </div>
+              <p>
+                Demand verified deforestation-free supply chains (FSC-certified timber, shade-grown cacao &amp; coffee, and traceable soy/palm alternatives) and share the science of the "Flying Rivers."
+              </p>
+              <button type="button" class="btn-pledge-action" data-pledge="supply">
+                <span>🌺 Pledge: Audit My Supply Footprint</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="finale-pledge-status" class="finale-pledge-status" role="status" aria-live="polite">
+            ✨ Click any conservation pledge above to bloom new 3D bioluminescent orchids onto the braided central vines!
+          </div>
+        </div>
+
+        <footer class="leaf-footer">
+          <div class="leaf-actions">
+            <button type="button" id="btn-bloom-all" class="btn-botanical btn-gold">
+              <span aria-hidden="true">🌸</span>
+              <span>Bloom Full Canopy of Hope</span>
+            </button>
+            <button type="button" class="btn-leaf-step btn-botanical btn-subtle" data-jump="0">
+              <span>▲ Ascend Back to Crown (Top)</span>
+            </button>
+          </div>
+          <span class="leaf-serial">TOGETHER WE GROW BACK</span>
+        </footer>
+      </article>
+
+    </canvas>
+  </div>
+
+  <!-- Architecture & WebGL Shader Modal Dialog -->
+  <dialog id="arch-dialog" class="arch-dialog" aria-labelledby="arch-dialog-title">
+    <form method="dialog" class="arch-dialog-form">
+      <header class="arch-dialog-header">
+        <h2 id="arch-dialog-title">
+          <span aria-hidden="true">🌿</span>
+          <span>3D Botanical Engine, Custom GLSL Shaders &amp; HTML-in-Canvas</span>
+        </h2>
+        <button type="submit" value="close" class="btn-dialog-close" aria-label="Close dialog">✕</button>
+      </header>
+      <div class="arch-dialog-body">
+        <p>
+          <strong>The Rainforest of Information</strong> combines physically based Three.js rendering with custom vertex/fragment shaders and the <strong>HTML-in-Canvas API</strong>:
+        </p>
+        <ul>
+          <li>
+            <strong>Dual DNA-Helix Twisted Liana Vines:</strong> On both the left and right sides of the viewport, paired <code>TubeGeometry</code> strands twist helically around each other with procedural bark normal maps, mossy patches, aerial root tendrils, and cross-rung nodes. In the finale, the parametric curves converge to <code>x = 0</code>, braiding together and spelling <strong>PROTECT THE RAINFOREST</strong> in 3D vine calligraphy.
+          </li>
+          <li>
+            <strong>Believable 3D Leaf Unfolding &amp; DOM Warping:</strong> Each alternating leaf sprouts from its parent vine via a curved petiole stem. As you scroll, both the 48×48 subdivided 3D leaf mesh and the live HTML DOM card unroll from a tightly curled fiddlehead cylinder into the center of the screen.
+          </li>
+          <li>
+            <strong>Procedural GLSL Fire &amp; Persistent Charred State:</strong> Clicking <em>Ignite This Leaf</em> on Leaf #6 triggers a multi-octave Fractional Brownian Motion (FBM) fire front in GLSL alongside a 3D rising ember particle system and 2D flame canvas. Once consumed, the leaf remains permanently charred in skeletal ash even when you scroll away and return later.
+          </li>
+        </ul>
+      </div>
+      <footer class="arch-dialog-footer">
+        <button type="submit" value="ok" class="btn-botanical btn-emerald">Return to the Canopy</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Scrollable Scrollytelling Track with 8 Snap Sections (0..7) -->
+  <main id="scroll-track" class="scroll-track">
+    <section id="step-0" class="scroll-step" data-step-number="0" aria-label="Stage 0: Emergent Canopy Crown"></section>
+    <section id="step-1" class="scroll-step" data-step-number="1" aria-label="Leaf 1 (Left Vine): The Three-Toed Sloth's Weekly Poo"></section>
+    <section id="step-2" class="scroll-step" data-step-number="2" aria-label="Leaf 2 (Right Vine): The Exploding Grenade Tree"></section>
+    <section id="step-3" class="scroll-step" data-step-number="3" aria-label="Leaf 3 (Left Vine): The 116-Decibel Screaming Piha and Decoy Spider"></section>
+    <section id="step-4" class="scroll-step" data-step-number="4" aria-label="Leaf 4 (Right Vine): The Canopy Dispatch Newsletter Sign-Up"></section>
+    <section id="step-5" class="scroll-step" data-step-number="5" aria-label="Leaf 5 (Left Vine): Rainforest Survival Multiple-Choice Exam"></section>
+    <section id="step-6" class="scroll-step" data-step-number="6" aria-label="Leaf 6 (Right Vine): The Burning Rainforest and Charred Remains"></section>
+    <section id="step-7" class="scroll-step" data-step-number="7" aria-label="Stage 7 Finale: Braided Vines and Protect the Rainforest"></section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

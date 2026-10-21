@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';">
+  <title>Paper Airplane Reply — 3D Origami Folding &amp; HTML-in-Canvas</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a href="#sender-input" class="skip-link">Skip to paper reply form</a>
+
+  <!-- Top Ambient Header & Telemetry Bar -->
+  <header class="hud-header" role="banner">
+    <div class="brand-cluster">
+      <span class="brand-emblem" aria-hidden="true">✈</span>
+      <div class="brand-titles">
+        <h1 class="brand-title">Paper Airplane Reply</h1>
+        <p class="brand-subtitle">3D Single-Vertex Origami Folding &amp; HTML-in-Canvas Dispatch</p>
+      </div>
+    </div>
+
+    <div class="hud-telemetry" aria-live="polite">
+      <span class="status-dot" id="flight-status-dot" aria-hidden="true"></span>
+      <span class="status-text" id="flight-status-text">Stage 0: Flat Stationery — Ready for Your Reply</span>
+      <span class="hic-pill" id="hic-mode-badge">HTML-in-Canvas Ready</span>
+    </div>
+  </header>
+
+  <!-- Main 3D Stage & HTML-in-Canvas Viewport -->
+  <main class="stage-main">
+    <div id="stage-viewport" class="stage-viewport">
+      <canvas
+        id="airplane-canvas"
+        content="drawable"
+        aria-label="3D interactive paper sheet that folds into a paper airplane and flies into the horizon"
+      >
+        <!-- Direct child 0: Drawable Interactive Paper Stationery Form -->
+        <!-- TODO(security): When connected to a remote backend endpoint, validate a cryptographic anti-CSRF token and enforce server-side rate limiting. -->
+        <form
+          id="paper-reply-form"
+          class="paper-sheet-form"
+          action="#airplane-canvas"
+          method="POST"
+          novalidate
+          drawable
+        >
+          <div class="airmail-border-top" aria-hidden="true"></div>
+
+          <!-- Origami Crease Guide Watermark Overlay (visualizes where the sheet will fold) -->
+          <div class="origami-crease-guides" aria-hidden="true">
+            <span class="crease-tag crease-tag-left">45° NOSE FOLD</span>
+            <span class="crease-tag crease-tag-center">CENTER KEEL SPINE</span>
+            <span class="crease-tag crease-tag-right">45° NOSE FOLD</span>
+          </div>
+
+          <!-- Stationery Header with Par Avion Badge & Stamp -->
+          <div class="sheet-header">
+            <div class="par-avion-wing">
+              <span class="par-avion-title">PAR AVION • AIRMAIL REPLY</span>
+              <span class="par-avion-sub">FOLD ALONG CREASES &amp; LAUNCH</span>
+            </div>
+            <div class="postage-stamp" aria-hidden="true">
+              <span class="stamp-price">3D • HIC</span>
+              <span class="stamp-icon">✈</span>
+              <span class="stamp-label">EXPRESS</span>
+            </div>
+          </div>
+
+          <fieldset class="sheet-fieldset">
+            <legend class="visually-hidden">Compose Paper Airplane Reply</legend>
+
+            <!-- 1. Sender Input Field -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="sender-input" class="sheet-label">
+                  FROM (SENDER) <span class="required-star" aria-hidden="true">*</span>
+                </label>
+                <span id="sender-hint" class="field-hint">Shown on left wing</span>
+              </div>
+              <input
+                type="text"
+                id="sender-input"
+                name="sender"
+                class="sheet-input"
+                value="Alex Rivera"
+                required
+                minlength="2"
+                maxlength="60"
+                autocomplete="name"
+                enterkeyhint="next"
+                aria-describedby="sender-hint sender-error"
+              >
+              <div id="sender-error" class="field-error" role="alert" aria-live="polite" hidden>
+                <span class="error-icon" aria-hidden="true">⚠</span>
+                <span id="sender-error-text">Please enter a sender name (at least 2 characters).</span>
+              </div>
+            </div>
+
+            <!-- 2. Message Textarea Field -->
+            <div class="form-group form-group-message">
+              <div class="label-row">
+                <label for="message-input" class="sheet-label">
+                  MESSAGE <span class="required-star" aria-hidden="true">*</span>
+                </label>
+                <span id="message-counter" class="field-hint" aria-live="polite">111 / 360 chars</span>
+              </div>
+              <textarea
+                id="message-input"
+                name="message"
+                class="sheet-textarea"
+                rows="5"
+                required
+                minlength="3"
+                maxlength="360"
+                aria-describedby="message-counter message-error"
+              >Meet me at the rooftop observatory at sunset! Folding this note into a dart glider and sending it across the skyline.</textarea>
+              <div id="message-error" class="field-error" role="alert" aria-live="polite" hidden>
+                <span class="error-icon" aria-hidden="true">⚠</span>
+                <span id="message-error-text">Please write a message before folding your airplane.</span>
+              </div>
+            </div>
+
+            <!-- 3. Footer Actions & Primary Send Button -->
+            <div class="sheet-footer">
+              <div class="sheet-quick-actions">
+                <button type="button" id="btn-sample-note" class="btn-sheet-secondary">
+                  ↻ New Sample
+                </button>
+                <button type="button" id="btn-clear-form" class="btn-sheet-secondary">
+                  ✕ Clear
+                </button>
+              </div>
+
+              <button type="submit" id="btn-send-airplane" class="btn-send-airplane">
+                <span class="btn-send-icon" aria-hidden="true">✈</span>
+                <span id="btn-send-label">Send &amp; Fold Airplane</span>
+              </button>
+            </div>
+          </fieldset>
+
+          <div class="airmail-border-bottom" aria-hidden="true"></div>
+        </form>
+      </canvas>
+
+      <!-- Floating Delivery Toast Banner (shown when the airplane finishes its flip and flies into the distance) -->
+      <aside id="delivery-toast" class="delivery-toast" role="status" aria-live="polite" hidden>
+        <div class="toast-content">
+          <span class="toast-badge" aria-hidden="true">✨ ✈ ✨</span>
+          <div class="toast-copy">
+            <strong id="toast-headline">Reply Soared Into the Distance!</strong>
+            <p id="toast-detail">Your folded paper airplane completed its loop-the-loop flip and glided over the horizon.</p>
+          </div>
+          <div class="toast-actions">
+            <button type="button" id="btn-replay-flight" class="btn-toast btn-toast-ghost">
+              ↻ Replay Fold &amp; Flip
+            </button>
+            <button type="button" id="btn-new-sheet" class="btn-toast btn-toast-primary">
+              + New Paper Sheet
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Bottom Interactive Origami & Aerobatics Control Deck -->
+  <footer class="hud-footer" role="contentinfo">
+    <div class="deck-panel">
+      <!-- Fold Stage Stepper Indicators -->
+      <div class="fold-steps-group" role="group" aria-label="Origami Folding Stages">
+        <span class="deck-label">ORIGAMI STAGE</span>
+        <div class="stage-pills">
+          <button type="button" class="stage-pill is-active" data-stage="0">
+            0. Flat Form
+          </button>
+          <button type="button" class="stage-pill" data-stage="1">
+            1. Nose Corners
+          </button>
+          <button type="button" class="stage-pill" data-stage="2">
+            2. Center Keel
+          </button>
+          <button type="button" class="stage-pill" data-stage="3">
+            3. Delta Wings
+          </button>
+          <button type="button" class="stage-pill" data-stage="4">
+            4. Winglets &amp; Fly
+          </button>
+        </div>
+      </div>
+
+      <!-- Manual 3D Fold Inspector Scrubber -->
+      <div class="scrubber-group">
+        <label for="fold-scrubber" class="deck-label">
+          3D FOLD INSPECTOR: <span id="fold-percent-label">0%</span>
+        </label>
+        <input
+          type="range"
+          id="fold-scrubber"
+          name="foldProgress"
+          class="fold-range"
+          min="0"
+          max="100"
+          step="1"
+          value="0"
+        >
+      </div>
+
+      <!-- Aerobatic Flip Style Radio Controls (< 6 options -> visible radios per Forms guide) -->
+      <fieldset class="flip-style-fieldset">
+        <legend class="deck-label">AEROBATIC FLIP STYLE</legend>
+        <div class="flip-radio-group">
+          <label class="flip-radio-pill">
+            <input type="radio" name="flipStyle" value="loop" checked>
+            <span>Loop-the-Loop Flip</span>
+          </label>
+          <label class="flip-radio-pill">
+            <input type="radio" name="flipStyle" value="barrel">
+            <span>Barrel Roll Flip</span>
+          </label>
+          <label class="flip-radio-pill">
+            <input type="radio" name="flipStyle" value="immelmann">
+            <span>Corkscrew Flip</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Quick Reset / Launch Controls -->
+      <div class="deck-actions">
+        <button type="button" id="btn-hud-reset" class="btn-deck btn-deck-reset">
+          Unfold to Form
+        </button>
+        <button type="button" id="btn-hud-launch" class="btn-deck btn-deck-launch">
+          Fold &amp; Launch ✈
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
