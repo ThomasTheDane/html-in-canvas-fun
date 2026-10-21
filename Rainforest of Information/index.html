@@ -7,7 +7,7 @@
   <title>The Rainforest of Information — 3D Living DNA Vines &amp; Interactive Canopy</title>
   <link rel="icon" href="data:,">
   <link rel="preload" as="image" href="./assets/liana_bark.jpg" fetchpriority="high" crossorigin="anonymous">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
   <!-- Top Botanical Canopy HUD & Quick-Jump Vine Node Navigation -->
@@ -21,25 +21,25 @@
     </div>
 
     <nav class="hud-vine-nav" aria-label="Sprouting Leaf Sections">
-      <button type="button" class="vine-node-btn is-active" data-step-target="0" aria-current="location" title="Crown Canopy Intro">
+      <button type="button" class="vine-node-btn is-active" data-step-target="0" aria-current="location" title="Crown Canopy: Golden Poison Frog">
         <span class="node-dot"></span>
-        <span class="node-label">0. Crown</span>
+        <span class="node-label">0. Poison Frog</span>
       </button>
-      <button type="button" class="vine-node-btn" data-step-target="1" title="Left Vine Leaf 1: Sloth Bathroom Drama">
+      <button type="button" class="vine-node-btn" data-step-target="1" title="Left Vine Leaf 1: Three-Toed Sloth">
         <span class="node-dot node-left"></span>
-        <span class="node-label">1. Sloth Fact</span>
+        <span class="node-label">1. Sloth</span>
       </button>
-      <button type="button" class="vine-node-btn" data-step-target="2" title="Right Vine Leaf 2: Exploding Grenade Tree">
+      <button type="button" class="vine-node-btn" data-step-target="2" title="Right Vine Leaf 2: Glass Frog">
         <span class="node-dot node-right"></span>
-        <span class="node-label">2. Grenade Tree</span>
+        <span class="node-label">2. Glass Frog</span>
       </button>
-      <button type="button" class="vine-node-btn" data-step-target="3" title="Left Vine Leaf 3: 116dB Piha &amp; Decoy Spider">
+      <button type="button" class="vine-node-btn" data-step-target="3" title="Left Vine Leaf 3: Decoy Spider">
         <span class="node-dot node-left"></span>
         <span class="node-label">3. Decoy Spider</span>
       </button>
-      <button type="button" class="vine-node-btn" data-step-target="4" title="Right Vine Leaf 4: Canopy Newsletter Form">
+      <button type="button" class="vine-node-btn" data-step-target="4" title="Right Vine Leaf 4: Write Your Name on the Leaf">
         <span class="node-dot node-right"></span>
-        <span class="node-label">4. Newsletter</span>
+        <span class="node-label">4. Write Name</span>
       </button>
       <button type="button" class="vine-node-btn" data-step-target="5" title="Left Vine Leaf 5: Multiple-Choice Rainforest Exam">
         <span class="node-dot node-left"></span>
@@ -81,258 +81,162 @@
     <canvas id="rainforest-canvas" layoutsubtree content="drawable" aria-label="3D Rainforest scene with two DNA-like twisted vines on each side and unfurling information leaves">
 
       <!-- ================================================================== -->
-      <!-- STAGE 0: CROWN CANOPY HERO PLAQUE (drawable child 0)               -->
+      <!-- STAGE 0: CROWN CANOPY — ANIMAL FUN FACT #1 (GOLDEN POISON FROG)    -->
       <!-- ================================================================== -->
-      <article id="leaf-card-0" class="hic-leaf-card leaf-hero-crown" data-step="0" data-side="center" drawable>
+      <article id="leaf-card-0" class="hic-leaf-card leaf-hero-crown leaf-fact-simple" data-step="0" data-side="center" drawable>
         <div class="leaf-vein-watermark" aria-hidden="true"></div>
         <header class="leaf-header">
-          <span class="leaf-sprout-badge badge-crown">EMERGENT CANOPY • 65M ELEVATION</span>
-          <span class="leaf-serial">SPECIMEN // 00</span>
+          <span class="leaf-sprout-badge badge-crown">THE RAINFOREST OF INFORMATION • ANIMAL FACT #01</span>
+          <span class="leaf-serial">PHYLLOBATES TERRIBILIS</span>
         </header>
 
         <div class="leaf-body">
-          <h1>The Rainforest of Information</h1>
-          <p class="leaf-lead">
-            Two living <strong>DNA-helix liana vines</strong> twist into the misty understory. Scroll down to watch each 3D tropical leaf unfold piece by piece—and drag across any text on the leaf to select it live in 3D.
+          <h1>Golden Poison Frog</h1>
+          <p class="leaf-single-fact">
+            A single two-inch golden poison dart frog carries enough natural neurotoxin on its skin to take down ten grown humans, yet becomes completely harmless if raised away from its wild rainforest ant diet.
           </p>
-
-          <div class="hero-feature-grid">
-            <div class="hero-feature-item">
-              <strong>🦥 Absurdly True Biology</strong>
-              <span>Sloth poo dances, 160 MPH grenade trees &amp; spider decoys.</span>
-            </div>
-            <div class="hero-feature-item">
-              <strong>✍️ Live Leaf Surface</strong>
-              <span>Select text mid-unfold, type into leaf forms &amp; take the quiz.</span>
-            </div>
-            <div class="hero-feature-item">
-              <strong>🔥 Fragile Canopy</strong>
-              <span>Ignite a leaf to ash, then watch the twin vines braid together.</span>
-            </div>
-          </div>
         </div>
-
-        <footer class="leaf-footer">
-          <div class="leaf-actions">
-            <button type="button" id="btn-start-descent" class="btn-botanical btn-emerald">
-              <span>🌱 Descend Vines</span>
-            </button>
-            <button type="button" id="btn-pulse-spores" class="btn-botanical btn-gold">
-              <span>✨ Release Spores</span>
-            </button>
-          </div>
-          <span id="hic-pipeline-badge" class="hic-pipeline-badge">HTML-in-Canvas Active</span>
-        </footer>
       </article>
 
       <!-- ================================================================== -->
-      <!-- STAGE 1: LEAF #1 (LEFT VINE) — FUN FACT #1: SLOTH BATHROOM DRAMA    -->
+      <!-- STAGE 1: LEAF #1 (LEFT VINE) — ANIMAL FUN FACT #2 (SLOTH)          -->
       <!-- ================================================================== -->
-      <article id="leaf-card-1" class="hic-leaf-card leaf-from-left" data-step="1" data-side="left" drawable>
+      <article id="leaf-card-1" class="hic-leaf-card leaf-from-left leaf-fact-simple" data-step="1" data-side="left" drawable>
         <div class="leaf-vein-watermark" aria-hidden="true"></div>
         <header class="leaf-header">
-          <span class="leaf-sprout-badge badge-left">LEFT VINE • TRUE FACT #01</span>
+          <span class="leaf-sprout-badge badge-left">LEFT VINE • ANIMAL FACT #02</span>
           <span class="leaf-serial">BRADYPUS TRIDACTYLUS</span>
         </header>
 
         <div class="leaf-body">
-          <h2>The Sloth’s High-Stakes Weekly Poo</h2>
-          <p class="leaf-copy">
-            Three-toed sloths take a full month to digest a single meal and climb down 100 feet just <strong>once a week</strong> to do a literal “poo dance”—losing <strong>one-third of their body weight</strong> in one sitting. Over half of all sloth deaths happen on this bathroom trip, all so resident <strong>Sloth Moths</strong> can lay eggs in the dung and fertilize camouflage algae on the sloth’s fur.
+          <h2>Three-Toed Sloth</h2>
+          <p class="leaf-single-fact">
+            Three-toed sloths climb down from the canopy just once a week to poop, losing up to one-third of their entire body weight in a single sitting so resident fur moths can lay eggs in the dung.
           </p>
-
-          <div class="leaf-interactive-box">
-            <div class="interactive-box-info">
-              <span id="sloth-stat-readout" class="stat-readout">Belly: 100% Full (7 days) • Fur Moths: 124</span>
-            </div>
-            <button type="button" id="btn-sloth-dance" class="btn-botanical btn-emerald">
-              <span>🕺 Do the Weekly “Poo Dance” (-33% Weight)</span>
-            </button>
-          </div>
         </div>
-
-        <footer class="leaf-footer">
-          <span class="leaf-serial">720-HOUR DIGESTION</span>
-          <div class="leaf-nav-group">
-            <button type="button" class="btn-leaf-step" data-jump="0" aria-label="Previous section">▲ Crown</button>
-            <button type="button" class="btn-leaf-step" data-jump="2" aria-label="Next leaf">Next Leaf ▼</button>
-          </div>
-        </footer>
       </article>
 
       <!-- ================================================================== -->
-      <!-- STAGE 2: LEAF #2 (RIGHT VINE) — FUN FACT #2: EXPLODING GRENADE TREE -->
+      <!-- STAGE 2: LEAF #2 (RIGHT VINE) — ANIMAL FUN FACT #3 (GLASS FROG)    -->
       <!-- ================================================================== -->
-      <article id="leaf-card-2" class="hic-leaf-card leaf-from-right" data-step="2" data-side="right" drawable>
+      <article id="leaf-card-2" class="hic-leaf-card leaf-from-right leaf-fact-simple" data-step="2" data-side="right" drawable>
         <div class="leaf-vein-watermark" aria-hidden="true"></div>
         <header class="leaf-header">
-          <span class="leaf-sprout-badge badge-right">RIGHT VINE • TRUE FACT #02</span>
-          <span class="leaf-serial">HURA CREPITANS</span>
+          <span class="leaf-sprout-badge badge-right">RIGHT VINE • ANIMAL FACT #03</span>
+          <span class="leaf-serial">HYALINOBATRACHIUM</span>
         </header>
 
         <div class="leaf-body">
-          <h2>The 160 MPH Frag-Grenade Tree</h2>
-          <p class="leaf-copy">
-            Armored in three-inch trunk spikes and toxic sap, the Amazonian <strong>“Monkey-No-Climb”</strong> tree refuses to bribe birds with sweet fruit. Instead, its pumpkin-shaped seed pods dry under extreme elastic tension until they detonate like a gunshot—flinging wooden shrapnel seeds at <strong>160 MPH</strong> over 140 feet through the jungle.
+          <h2>Emerald Glass Frog</h2>
+          <p class="leaf-single-fact">
+            The rainforest glass frog has completely translucent skin on its belly, allowing you to see its tiny heart beating and meals digesting in real time while it sleeps under canopy leaves.
           </p>
-
-          <div class="leaf-interactive-box">
-            <div class="interactive-box-info">
-              <span id="grenade-stat-readout" class="stat-readout">Pod Tension: 88 PSI (Armed) • Last Launch: 0 ft</span>
-            </div>
-            <button type="button" id="btn-detonate-pod" class="btn-botanical btn-gold">
-              <span>💥 Detonate Seed Pod (160 MPH)</span>
-            </button>
-          </div>
         </div>
-
-        <footer class="leaf-footer">
-          <span class="leaf-serial">MUZZLE VELOCITY: 70 M/S</span>
-          <div class="leaf-nav-group">
-            <button type="button" class="btn-leaf-step" data-jump="1" aria-label="Previous leaf">▲ Prev</button>
-            <button type="button" class="btn-leaf-step" data-jump="3" aria-label="Next leaf">Next Leaf ▼</button>
-          </div>
-        </footer>
       </article>
 
       <!-- ================================================================== -->
-      <!-- STAGE 3: LEAF #3 (LEFT VINE) — FUN FACT #3: PIHA & DECOY SPIDER     -->
+      <!-- STAGE 3: LEAF #3 (LEFT VINE) — ANIMAL FUN FACT #4 (DECOY SPIDER)   -->
       <!-- ================================================================== -->
-      <article id="leaf-card-3" class="hic-leaf-card leaf-from-left" data-step="3" data-side="left" drawable>
+      <article id="leaf-card-3" class="hic-leaf-card leaf-from-left leaf-fact-simple" data-step="3" data-side="left" drawable>
         <div class="leaf-vein-watermark" aria-hidden="true"></div>
         <header class="leaf-header">
-          <span class="leaf-sprout-badge badge-left">LEFT VINE • TRUE FACT #03</span>
-          <span class="leaf-serial">CYCLOSA &amp; LIPAWU</span>
+          <span class="leaf-sprout-badge badge-left">LEFT VINE • ANIMAL FACT #04</span>
+          <span class="leaf-serial">CYCLOSA MULMEINENSIS</span>
         </header>
 
         <div class="leaf-body">
-          <h2>116dB Screamer &amp; The Fake Spider Puppet</h2>
-          <p class="leaf-copy">
-            The drab grey <strong>Screaming Piha</strong> blasts mating calls at <strong>116 decibels</strong> (louder than a chainsaw), while a tiny 5mm Peruvian <em>Cyclosa</em> spider sculpts a <strong>giant 25mm anatomical decoy spider</strong> out of moss and bug husks—shaking its web strings like a puppeteer to scare off predatory wasps.
+          <h2>Puppeteer Decoy Spider</h2>
+          <p class="leaf-single-fact">
+            A tiny five-millimeter Peruvian orb-weaver spider sculpts a giant eight-legged decoy spider out of moss and insect husks in its web and shakes the silk strings like a puppet to scare off predators.
           </p>
-
-          <div class="leaf-interactive-box">
-            <span id="decoy-stat-readout" class="stat-readout">8 Silk Legs Sculpted • Wasps Fooled: 14</span>
-            <div class="leaf-btn-row">
-              <button type="button" id="btn-shake-decoy" class="btn-botanical btn-emerald">
-                <span>🕸️ Shake Decoy Puppet</span>
-              </button>
-              <button type="button" id="btn-piha-call" class="btn-botanical btn-gold">
-                <span>📢 116dB Whistle</span>
-              </button>
-            </div>
-          </div>
         </div>
-
-        <footer class="leaf-footer">
-          <span class="leaf-serial">5× DECOY SCALE</span>
-          <div class="leaf-nav-group">
-            <button type="button" class="btn-leaf-step" data-jump="2" aria-label="Previous leaf">▲ Prev</button>
-            <button type="button" class="btn-leaf-step" data-jump="4" aria-label="Next leaf">Next Leaf ▼</button>
-          </div>
-        </footer>
       </article>
 
       <!-- ================================================================== -->
-      <!-- STAGE 4: LEAF #4 (RIGHT VINE) — INTERACTIVE NEWSLETTER SIGN-UP     -->
+      <!-- STAGE 4: LEAF #4 (RIGHT VINE) — WRITE YOUR NAME ON THE LEAF        -->
       <!-- ================================================================== -->
-      <article id="leaf-card-4" class="hic-leaf-card leaf-from-right" data-step="4" data-side="right" drawable>
+      <article id="leaf-card-4" class="hic-leaf-card leaf-from-right leaf-name-card" data-step="4" data-side="right" drawable>
         <div class="leaf-vein-watermark" aria-hidden="true"></div>
         <header class="leaf-header">
-          <span class="leaf-sprout-badge badge-right">RIGHT VINE • LEAF #04</span>
-          <span class="leaf-serial">CANOPY DISPATCH</span>
+          <span class="leaf-sprout-badge badge-right">RIGHT VINE • LUMINOUS LEAF INSCRIPTION</span>
+          <span id="name-etch-status" class="leaf-serial">READY TO ETCH</span>
         </header>
 
         <div class="leaf-body">
-          <h2>Inscribe Your Name into the Canopy</h2>
-          <p class="leaf-copy">
-            Type directly onto this living leaf for bi-weekly field notes on bizarre rainforest evolution and frontline conservation.
-          </p>
+          <h2>Write Your Name on the Leaf</h2>
 
-          <!-- TODO(security): In a multi-user production deployment, validate the anti-CSRF token and rate-limit POST /subscribe on a dedicated Backend-for-Frontend (BFF) server. -->
-          <form id="newsletter-form" class="leaf-newsletter-form" action="#subscribe" method="POST" novalidate>
-            <input type="hidden" id="csrf-token-field" name="csrf_token" value="canopy-csrf-v1">
-
-            <div class="form-row-two-col">
-              <div class="form-field">
-                <label for="explorer-name">Explorer Name <span class="req-star" aria-hidden="true">*</span></label>
-                <span id="name-hint" class="field-hint">2–80 characters</span>
-                <input
-                  type="text"
-                  id="explorer-name"
-                  name="full_name"
-                  required
-                  minlength="2"
-                  maxlength="80"
-                  autocomplete="name"
-                  placeholder="Dr. Ines Aranha"
-                  aria-describedby="name-hint"
-                  aria-errormessage="name-error"
-                >
-                <div id="name-error" class="field-error-msg">
-                  <span aria-hidden="true">⚠️</span> Enter at least 2 characters.
-                </div>
-              </div>
-
-              <div class="form-field">
-                <label for="explorer-email">Canopy Email <span class="req-star" aria-hidden="true">*</span></label>
-                <span id="email-hint" class="field-hint">explorer@rainforest.org</span>
-                <input
-                  type="email"
-                  id="explorer-email"
-                  name="email"
-                  required
-                  maxlength="120"
-                  autocomplete="email"
-                  autocorrect="off"
-                  autocapitalize="off"
-                  spellcheck="false"
-                  placeholder="ines@canopy.org"
-                  aria-describedby="email-hint"
-                  aria-errormessage="email-error"
-                >
-                <div id="email-error" class="field-error-msg">
-                  <span aria-hidden="true">⚠️</span> Enter a valid email.
-                </div>
-              </div>
-            </div>
-
-            <fieldset class="courier-fieldset">
-              <legend>Delivery Courier:</legend>
-              <div class="courier-radio-grid">
-                <label class="courier-option">
-                  <input type="radio" name="courier" value="Harpy Eagle Express" checked>
-                  <span class="courier-text">🦅 <strong>Harpy Eagle</strong></span>
-                </label>
-                <label class="courier-option">
-                  <input type="radio" name="courier" value="Three-Toed Sloth Courier">
-                  <span class="courier-text">🦥 <strong>Sloth (6 Wks)</strong></span>
-                </label>
-                <label class="courier-option">
-                  <input type="radio" name="courier" value="Exploding Hura Pod">
-                  <span class="courier-text">💥 <strong>160 MPH Pod</strong></span>
-                </label>
-              </div>
-            </fieldset>
-
-            <div class="form-submit-row">
-              <button type="submit" id="btn-newsletter-submit" class="btn-botanical btn-emerald">
-                <span>🌿 Inscribe Dispatch</span>
+          <form id="newsletter-form" class="leaf-name-form" action="#inscribe" method="POST" novalidate>
+            <label for="explorer-name" class="leaf-name-label">
+              Type your name below and press Submit to etch it stroke-by-stroke in living light:
+            </label>
+            <div class="leaf-name-input-row">
+              <input
+                type="text"
+                id="explorer-name"
+                name="full_name"
+                required
+                minlength="1"
+                maxlength="24"
+                autocomplete="name"
+                placeholder="Write your name on the leaf..."
+              >
+              <button type="submit" id="btn-newsletter-submit" class="btn-botanical btn-gold btn-etch-submit">
+                <span>✨ Write on Leaf</span>
               </button>
-              <div id="newsletter-feedback" class="newsletter-feedback" role="status" aria-live="polite">
-                Ready for inscription.
-              </div>
             </div>
           </form>
-        </div>
 
-        <footer class="leaf-footer">
-          <span class="leaf-serial">CHLOROPHYLL-POWERED</span>
-          <div class="leaf-nav-group">
-            <button type="button" class="btn-leaf-step" data-jump="3" aria-label="Previous leaf">▲ Prev</button>
-            <button type="button" class="btn-leaf-step" data-jump="5" aria-label="Next leaf">Next Leaf ▼</button>
+          <!-- Stroke-by-Stroke Bioluminescent Light-Etching Stage -->
+          <div id="leaf-inscription-stage" class="leaf-inscription-stage" aria-live="polite">
+            <svg
+              id="name-etch-svg"
+              class="name-etch-svg"
+              viewBox="0 0 590 132"
+              width="590"
+              height="132"
+              aria-label="Inscribed name on the leaf"
+            >
+              <defs>
+                <linearGradient id="etch-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fffef2" />
+                  <stop offset="48%" stop-color="#ffe885" />
+                  <stop offset="100%" stop-color="#7bffab" />
+                </linearGradient>
+                <radialGradient id="pen-flare-grad" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                  <stop offset="30%" stop-color="#fff099" stop-opacity="0.95" />
+                  <stop offset="65%" stop-color="#58ff9c" stop-opacity="0.55" />
+                  <stop offset="100%" stop-color="#58ff9c" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+
+              <!-- Subtle luminous baseline vein -->
+              <path
+                id="etch-vein-baseline"
+                d="M 24 104 Q 295 114 566 100"
+                fill="none"
+                stroke="rgba(165, 255, 195, 0.25)"
+                stroke-width="1.5"
+                stroke-dasharray="4 6"
+              />
+
+              <!-- Group holding the individual stroke-animated letter glyphs -->
+              <g id="etch-letters-group"></g>
+
+              <!-- Active glowing light-beam pen & spark particles while drawing -->
+              <g id="etch-light-beam-group" opacity="0">
+                <circle id="etch-flare-outer" cx="0" cy="0" r="28" fill="url(#pen-flare-grad)" />
+                <line id="etch-ray-h" x1="-22" y1="0" x2="22" y2="0" stroke="#fffef0" stroke-width="2" stroke-linecap="round" />
+                <line id="etch-ray-v" x1="0" y1="-22" x2="0" y2="22" stroke="#fffef0" stroke-width="2" stroke-linecap="round" />
+                <circle id="etch-flare-core" cx="0" cy="0" r="5.5" fill="#ffffff" />
+                <g id="etch-sparks-group"></g>
+              </g>
+            </svg>
+            <div id="newsletter-feedback" class="leaf-etch-caption">
+              Submit your name above to watch light trace each letter into the leaf blade.
+            </div>
           </div>
-        </footer>
+        </div>
       </article>
 
       <!-- ================================================================== -->
@@ -579,16 +483,16 @@
 
   <!-- Scrollable Scrollytelling Track with 8 Snap Sections (0..7) -->
   <main id="scroll-track" class="scroll-track">
-    <section id="step-0" class="scroll-step" data-step-number="0" aria-label="Stage 0: Emergent Canopy Crown"></section>
-    <section id="step-1" class="scroll-step" data-step-number="1" aria-label="Leaf 1 (Left Vine): The Three-Toed Sloth's Weekly Poo"></section>
-    <section id="step-2" class="scroll-step" data-step-number="2" aria-label="Leaf 2 (Right Vine): The Exploding Grenade Tree"></section>
-    <section id="step-3" class="scroll-step" data-step-number="3" aria-label="Leaf 3 (Left Vine): The 116-Decibel Screaming Piha and Decoy Spider"></section>
-    <section id="step-4" class="scroll-step" data-step-number="4" aria-label="Leaf 4 (Right Vine): The Canopy Dispatch Newsletter Sign-Up"></section>
+    <section id="step-0" class="scroll-step" data-step-number="0" aria-label="Stage 0: Golden Poison Frog Fun Fact"></section>
+    <section id="step-1" class="scroll-step" data-step-number="1" aria-label="Leaf 1 (Left Vine): Three-Toed Sloth Fun Fact"></section>
+    <section id="step-2" class="scroll-step" data-step-number="2" aria-label="Leaf 2 (Right Vine): Emerald Glass Frog Fun Fact"></section>
+    <section id="step-3" class="scroll-step" data-step-number="3" aria-label="Leaf 3 (Left Vine): Puppeteer Decoy Spider Fun Fact"></section>
+    <section id="step-4" class="scroll-step" data-step-number="4" aria-label="Leaf 4 (Right Vine): Write Your Name on the Leaf"></section>
     <section id="step-5" class="scroll-step" data-step-number="5" aria-label="Leaf 5 (Left Vine): Rainforest Survival Multiple-Choice Exam"></section>
     <section id="step-6" class="scroll-step" data-step-number="6" aria-label="Leaf 6 (Right Vine): The Burning Rainforest and Charred Remains"></section>
     <section id="step-7" class="scroll-step" data-step-number="7" aria-label="Stage 7 Finale: Braided Vines and Protect the Rainforest"></section>
   </main>
 
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=4"></script>
 </body>
 </html>

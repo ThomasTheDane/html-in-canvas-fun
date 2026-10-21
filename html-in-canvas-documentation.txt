@@ -1,0 +1,1207 @@
+﻿HTML-in-Canvas: documentation proposal
+Initial draft: Sep 1, 2026  • Last updated: Oct 14, 2026
+Status: In Review
+Author: Natalia Markoborodova
+Review bug: b/567834650
+Staged: -
+CL: -
+
+
+Function 
+	Reviewer
+	Status
+	Notes
+	SWE
+	Philip Rogers
+	Approved
+	
+
+	SWE
+	Stefan Zager
+	In progress
+	
+
+	PM
+	Thomas Nattestad
+	Approved
+	
+
+	DevRel
+	Bramus Van Damme
+	Approved
+	
+
+	TW
+	Rachel Andrew
+	Approved
+	With comments in draft. As with the blog post, please run the Style Guide tool on the CL.
+	gTech
+	Andrew Kean Guan
+	FYI
+	
+
+	PShips
+	Brendan McNamara
+	FYI
+	Once published, I will include this as a reference for partner facing teams in our internal communications dashboard. 
+	________________
+Structure
+The proposal is to publish the HTML-in-Canvas documentation under Chrome for developers /docs/web-platform section, neighbouring, for example, the View transitions content.  
+
+The proposed HTML-in-Canvas documentation structure is as follows:
+
+| HTML-in-Canvas
+|----- Overview (https://developer.chrome.com/docs/web-platform/html-in-canvas)
+|----- Technical concepts (https://developer.chrome.com/docs/web-platform/html-in-canvas/concepts)
+|----- 2D context (https://developer.chrome.com/docs/web-platform/html-in-canvas/2d)
+|----- HTML in WebGL canvas (https://developer.chrome.com/docs/web-platform/html-in-canvas/webgl)
+|----- HTML in WebGPU canvas  (https://developer.chrome.com/docs/web-platform/html-in-canvas/webgpu)
+|----- HTML in offscreen canvas  (https://developer.chrome.com/docs/web-platform/html-in-canvas/offscreen)[a][b]
+
+
+
+
+Content
+Please review the dedicated tab for each content page, and update the review status in the table.
+
+
+| HTML-in-Canvas
+|----- Overview 
+|----- Technical concepts
+|----- HTML in 2D canvas
+|----- HTML in WebGL canvas
+|----- HTML in WebGPU canvas
+|----- HTML in offscreen canvas
+
+
+
+
+HTML-in-Canvas overview[c]
+The HTML-in-Canvas API bridges the gap between the interactive and accessible world of the DOM and the high-performance, pixel-level control of `<canvas>`.
+
+
+Video overview of the HTML-in-Canvas API
+
+
+For years, web developers had to face trade-offs when building visually demanding web applications:
+
+
+Technology
+	Strengths
+	Limitations
+	`<canvas>`
+	* Low-level pixel control: Direct access to the GPU to drive advanced 2D and 3D graphics pipelines, custom shaders, and offscreen workers.
+* High-performance rendering: Efficiently renders heavy, data-dense UIs.
+	
+
+* No Web platform features: Common operations like text selection, copy/paste, right-click actions, and responsive text layout must be manually implemented in JavaScript, adding substantial bundle weight.
+* No browser features: The pixel grid is opaque to the browser. Features like accessibility, Find-in-Page, auto-translate, or autofill aren't supported in canvas natively and require fallback implementation.
+	`HTML` 
+	* Semantic, rich UI out of the box: Built-in form controls, responsive typography, or multi-line wrapping powered by the browser.
+* Deep browser integration: Support for accessibility (screen readers), Find-in-Page, and standard interactions (text highlighting, copy/paste), live translation, autofill.
+* Support for debugging and testing, for example, with DevTools.
+	* Limited ability to control performance for complex layouts: As DOM complexity grows, the default performance characteristics hit limits.
+* UX effects are limited to standard HTML, CSS, and SVG. Pixel manipulation, particle effects, and shaders are not available.
+	
+
+HTML-in-Canvas eliminates this compromise. The API allows developers to draw live DOM subtrees directly into 2D, WebGL, or WebGPU canvas contexts—while the browser natively retains user interactivity, accessibility trees, and browser-level integrations.
+Before HTML-in-Canvas
+Before this API, developers building canvas-heavy UIs had to choose between two approaches, each with their own downsides:
+1. Rendering text directly as canvas pixels (`fillText()`). Apps drew text and UI controls imperatively as raw pixels. This resulted in the following downsides:
+* Accessibility breakdown: Screen readers and assistive tools cannot read canvas pixels unless developers manually construct and sync an invisible fallback DOM.
+* Loss of browser features: Users cannot search with Find-in-Page (Ctrl/Cmd+F), copy/paste text naturally, trigger context menus, or use browser translation and spellcheck.
+* Complex typography engines: Supporting internationalization requires bundling massive JavaScript layout engines.
+2. Floating HTML overlays on top of canvas. For example, using libraries that position standard HTML elements over the canvas by calculating bounding boxes and matrix transforms in JavaScript. The downsides of this approach are:
+* Synchronization lag & visual tearing: Scrolling, zooming, or camera movements in 3D frequently could cause the overlay DOM elements to drift or jitter relative to the canvas pixels due to frame-timing differences.
+* Clipping and z-ordering limitations: HTML overlays always sit on top of the entire canvas canvas buffer. Embedding HTML inside a 3D scene (e.g., behind a 3D object, inside a glass material, or reflected in a mirror) was impossible without complex iframe-to-image hacks.
+* Performance overhead: To keep overlays aligned with the canvas, you have to recalculate each overlay's transform in JavaScript and write it to `style.transform` on every frame. The browser then parses each string and recalculates the element's style before it can render the frame, so main-thread work grows with every overlay that you add. In a 2D context, `drawElementImage()` updates the element's position for you. In WebGL and WebGPU, you pass the transform that you calculate to `updateElementGeometry()` as a matrix. Either way, the browser doesn't parse CSS or recalculate styles.
+
+
+HTML-in-Canvas: Benefits
+With the new HTML-in-Canvas API, you don't have to choose. By placing HTML inside the `<canvas>` element and synchronizing its transform, you ensure the content remains fully interactive, and that all browser integrations function automatically.
+
+
+Here's what you get by letting the DOM handle your UI inside a `<canvas>` element:
+
+
+* Text layout and formatting: Support for text layout and formatting, including multiline or bidirectional text with CSS styles applied.
+* Form controls: Expressive form controls with extensive CSS and shader customization options.
+* Text selection, copy/paste, and right-click: Users can highlight text inside 3D scenes or trigger context menus natively.
+* Accessibility: HTML content rendered inside the canvas is exposed to the accessibility tree for screen readers.
+* Browser features integration: Browser features like translate, autofill, or find-in-page work out of the box. Users can translate or search for text inside WebGL and WebGPU textures.
+* Extension integration: Browser extensions work natively. For example, a text-replacement extension automatically updates the text rendered on your 3D meshes.
+* DevTools integration: Inspect and tweak CSS styles for canvas UI elements directly in Chrome DevTools.
+* Indexability and AI agents: Web crawlers and AI agents can index DOM content rendered into 2D and 3D scenes.
+* Media editing and export: Export full canvas composites containing live DOM elements directly to images (`toDataURL()`, `toBlob()`) or video streams (`captureStream()`).
+
+
+  
+
+Demo comparing feature integration of text rendered directly into a canvas and HTML-in-Canvas. On the left, the canvas content is rendered using HTML-in-Canvas; the content is selectable and translatable, and browser features like autofill work out of the box. On the right, the content is rendered directly into a canvas using the `.fillText()` method and is not interactive. 
+Use cases
+This API unlocks potential across several domains:
+* Large canvas-based applications: Heavyweight web apps can now render complex application UI components natively into their canvas-driven workspaces, improving accessibility and reducing bundle weight.
+* 3D scenes and games: Marketing sites, immersive WebXR experiences, and web games can now place fully interactable web UI into 3D scenes—like a 3D book that uses real DOM text, or an in-game terminal that natively supports copying and pasting.
+* Media editing and export. Creative tools like image generators, video editors, and design platforms often need to combine rich, styled HTML typography, templates, or user watermarks with direct pixel manipulation and shader effects. Because HTML-in-Canvas renders the DOM directly into the canvas pixel buffer, the entire composite can be exported directly as an image (such as with `toDataURL()` or `toBlob()`) or recorded into video frames with `captureStream()`. This improves rendering performance and visual fidelity compared to client-side libraries that attempt to reconstruct the DOM in JavaScript before export.
+* Stunning UIs. Combining HTML and Canvas unlocks the capability to directly manipulate HTML content as pixels. This allows for a broader range of effects. With HTML-in-Canvas, you can re-imagine your UI to impress your users.  
+Implement your UI with HTML-in-Canvas[d]
+* You can integrate HTML-in-Canvas into your application directly with the browser APIs, use a framework that supports it, or use a coding agent to assist you[e]. 
+Direct implementation
+
+
+The implementation depends on the context you are using. To start with the implementation, make sure you understand the technical concepts that are common across all the contexts, for example, `drawable` content and `paint` event.
+
+
+Learn how to draw the element image into a canvas and update the element's geometry for the following contexts: 
+* 2D context
+* WebGL
+* WebGPU 
+Library and framework support
+Some of the popular libraries have already shipped support for the HTML-in-Canvas feature.[f]
+
+
+Note: The listed tools are community libraries and are third-party projects. They are not developed, maintained, or officially supported by Google or the Chrome team.
+Three.js[g][h]
+Updating matrixes manually can be tedious, which is why frameworks are already jumping on board. Three.js has experimental support using the new `THREE.HTMLTexture`:
+const material = new THREE.MeshBasicMaterial();
+material.map = new THREE.HTMLTexture(uiElement); // Pass the DOM element
+
+
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
+PlayCanvas
+PlayCanvas also supports HTML-in-Canvas using their texture API:
+// Wait for the 'paint' event to set the source
+canvas.addEventListener('paint', () => {
+    htmlTexture.setSource(htmlElement);
+}, { once: true });
+canvas.requestPaint();
+
+
+// Keep up to date
+canvas.addEventListener('paint', onPaintUpload);
+
+
+const material = new pc.StandardMaterial();
+material.diffuseMap = htmlTexture;
+material.update();
+
+Babylon.js
+Babylon.js supports HTML-in-Canvas through the `BABYLON.HtmlTexture` class: 
+
+
+// 2. Wrap the DOM element in an HtmlTexture 
+const htmlTexture = new BABYLON.HtmlTexture("htmlTexture", uiElement, scene);
+
+
+// 3. Assign the texture to a material
+const material = new BABYLON.StandardMaterial("hudMaterial", scene);
+material.diffuseTexture = htmlTexture;
+
+
+// 4. Apply material to 3D mesh
+const plane = BABYLON.MeshBuilder.CreatePlane("hudPlane", { width: 1.6, height: 0.9 }, scene);
+plane.material = material;
+
+
+// 5. Start Render Loop
+engine.runRenderLoop(() => {
+  scene.render();
+});
+
+
+
+PixiJS
+PixiJS shipped support for HTML-in-Canvas in `v8.19.0`:
+
+
+import { HTMLSource } from 'pixi.js/html-source';
+
+
+// ... Initialize the app
+
+
+// Append the HTML element as a direct child of the Pixi canvas
+app.canvas.appendChild(htmlElement);
+
+
+// Create the HTML-in-Canvas source and wrap it in a Sprite
+const sprite = Sprite.from(new HTMLSource({ resource: form, autoUpdate: true }));
+app.stage.addChild(sprite);
+
+
+app.ticker.add(() => {
+  // Make sure to align the HTML element by updating its transform
+  const syncT = app.canvas.getElementTransform(htmlElement, finalTransform);
+  if (syncT) {
+    htmlElement.style.transform = syncT.toString();
+  }
+}
+CanvasUI
+CanvasUI is an open source library of UI components that use Html-in-Canvas.
+
+
+Implement HTML-in-Canvas with a coding agent
+If you use a coding agent, install Modern Web Guidance that includes the latest implementation instructions for HTML-in-Canvas. Additionally to HTML-in-Canvas, Modern Web Guidance covers other modern browser APIs and best practices.
+Next steps
+* Understand the core technical concepts behind HTML-in-Canvas
+* Learn how to render HTML in a 2D context 
+* Learn how to render HTML in a WebGL Canvas 
+* Learn how to render HTML in a WebGPU Canvas 
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+HTML-in-Canvas: Technical concepts
+The HTML-in-Canvas API allows you to render interactive, accessible DOM subtrees directly into 2D, WebGL, or WebGPU canvas contexts. 
+
+
+This guide outlines HTML-in-Canvas technical concepts that are common across all the canvas contexts:
+* Prepare your canvas to render HTML
+* Understand `drawable` subtree
+* Understand the `paint` event
+* Update element's geometry 
+* Understand accessibility of HTML-in-Canvas 
+* Use fallback strategies
+Prepare your canvas to render HTML
+To render HTML elements inside a `<canvas>`, you must configure two attributes:
+
+
+* Set `content="drawable"` on the `<canvas>`: This opts the canvas element into laying out its descendant DOM nodes instead of treating them solely as hidden content.
+* `drawable` on target elements: Marks an element as an independent paint root eligible for canvas rendering.
+
+
+
+
+<canvas id="mainCanvas" width="600" height="400" content="drawable">
+  <div id="parentElement" class="card" drawable>
+    <h2>Container Title</h2>
+    <p>Descriptive text inside the parent element.</p>
+    <!-- Nested drawable: excluded from parentElement and drawn independently -->
+    <button id="childElement" class="btn" drawable>Action Button</button>
+  </div>
+</canvas>
+
+
+Understanding the drawable subtree 
+When preparing your HTML to be rendered into a canvas, you need to decide which elements should be drawn independently. Each `drawable` element represents an independent paint root and its drawable subtree. 
+A drawable subtree consists of an element with the `drawable` attribute and all of its descendants, excluding any nested descendants that also carry `drawable`, for example:
+
+
+<canvas content="drawable">
+  <!-- Subtree A (Renders parent container and text) -->
+  <div id="parentElement" drawable>
+    <h2>Parent Card Heading</h2>
+    <p>Card body text content.</p>
+    <!-- Subtree B (Excluded from Subtree A and drawn separately) --> 
+    <button id="nestedChildElement" drawable>
+      Clickable Button
+    </button>
+  </div>
+</canvas>
+
+
+
+Element
+	Paint boundary
+	Behavior
+	`#parentElement` (Subtree A)
+	Background panel, heading, and paragraph
+	Rendered when calling `drawElementImage(parentElement, ...)`
+	`#nestedChildElement` (Subtree B)
+	Button surface and text
+	Excluded from `#parentElement` subtree; rendered in a separate `drawElementImage(nestedChildElement, ...)` call
+	Nesting drawable elements lets you maintain semantic HTML relationships while giving you the freedom to layer, position, or animate child elements independently over your canvas scene.
+
+
+Understand the `paint` event
+The HTML-in-Canvas API introduces the `paint` event. The browser automatically dispatches a `paint` event on the `<canvas>` whenever layout, text, or CSS styles change on any of its `drawable` descendants.
+
+
+canvas.addEventListener("paint", (event) => {
+  // Clear the viewport
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
+  // Redraw elements individually
+  ctx.drawElementImage(parentElement, 20, 20);
+  ctx.drawElementImage(childElement, 40, 90);
+});
+
+The `paint` event dispatches an instance of `CanvasPaintEvent` which extends standard DOM Event and has a `changedElements` property that contains only the `drawable` descendants that visually changed (for example, style changes, layout shifts, text edits, focus state changes) since the last paint.
+
+
+canvas.addEventListener("paint", (event) => {
+  // Array of changed elements 
+  for (const el of event.changedElements) {
+    console.log(`Element #${el.id} visually changed and needs repainting`);
+  }
+});
+Frame lifecycle
+Canvas drawing commands executed inside the `paint` event appear in the current rendering update, but DOM modifications made inside the `paint` event do not show up until the subsequent frame:
+
+
+canvas.addEventListener("paint", () => {
+  // Renders in the CURRENT rendering update:
+  ctx.drawElementImage(parentElement, 20, 20);
+
+
+  // Modifying DOM styles inside paint schedules a new layout cycle;
+  // changes will appear in the NEXT frame:
+  parentElement.style.backgroundColor = "#e0f2fe";
+});
+
+
+
+Note: If a DOM change you make inside the `paint` handler changes how a `drawable` element renders, the browser fires another `paint` event on the next rendering update. To make style changes that take effect on the current rendering update, make these updates inside a `requestAnimationFrame` callback, which runs before the paint event for a given rendering update.
+Nested canvases
+If your page contains nested `<canvas content="drawable">` elements, the browser dispatches `paint` events in reverse DOM tree order (descendants fire before ancestors). This ensures child canvas elements render before parent canvas elements composite them.
+
+
+Suppose in the following example the inner `nestedElement` element must visually change (say, its CSS background color changes on hover). First, the `paint` event fires on the `nestedCanvas` canvas. Its listener clears the child buffer and calls `ctx.drawElementImage(nestedElement, ...)` to render the updated hover state. Then the `paint` event fires on `parentCanvas`. Its listener draws `wrapperElement` (which contains the already-updated `nestedCanvas` canvas) into the scene.
+
+
+<!-- Outer parent canvas -->
+<canvas id="parentCanvas" width="800" height="600" content="drawable">
+  <!-- Wrapper container for nested content -->
+  <div id="wrapperElement" drawable>
+    
+    <!-- Nested child canvas -->
+    <canvas id="nestedCanvas" width="300" height="200" content="drawable">
+      <div id="nestedElement" class="badge" drawable>
+        Inner Child Content
+      </div>
+    </canvas>
+    
+  </div>
+</canvas>
+
+
+<script>
+const parentCanvas = document.getElementById("parentCanvas");
+const parentCtx = parentCanvas.getContext("2d");
+
+
+const nestedCanvas = document.getElementById("nestedCanvas");
+const nestedCtx = nestedCanvas.getContext("2d");
+
+
+const nestedElement = document.getElementById("nestedElement");
+const wrapperElement = document.getElementById("wrapperElement");
+
+
+// ============================================================================
+// 1. Child Canvas Listener (Fires FIRST)
+// ============================================================================
+nestedCanvas.addEventListener("paint", (event) => {
+  // Clear and redraw the child canvas with the updated inner element
+  nestedCtx.clearRect(0, 0, nestedCanvas.width, nestedCanvas.height);
+  nestedCtx.drawElementImage(nestedElement, 10, 10);
+  
+  console.log("1. Child nested canvas rendered fresh pixels.");
+});
+
+
+// ============================================================================
+// 2. Parent Canvas Listener (Fires SECOND)
+// ============================================================================
+parentCanvas.addEventListener("paint", (event) => {
+  // Clear and redraw the parent canvas scene
+  parentCtx.clearRect(0, 0, parentCanvas.width, parentCanvas.height);
+  
+  // Draws the wrapper container (including the freshly painted nestedCanvas)
+  parentCtx.drawElementImage(wrapperElement, 50, 50);
+  
+  console.log("2. Parent canvas composited the complete scene.");
+});
+</script>
+
+Trigger paint event
+You can call `requestPaint()` to schedule a single `paint` event on the next frame, even if no DOM text or styles have changed. This can be used for rendering interactive scenes with moving elements, for example:
+
+
+let animatedX = 0;
+
+
+function animationLoop() {
+  animatedX += 1.5; // Move the element horizontally
+  
+  // Request canvas paint for smooth animation
+  canvas.requestPaint();
+  
+  requestAnimationFrame(animationLoop);
+}
+
+
+canvas.addEventListener("paint", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawElementImage(staticElement, 20, 20);
+  ctx.drawElementImage(movingElement, animatedX, 200);
+});
+
+
+animationLoop();
+
+
+Update element's geometry
+After rendering the element image into your canvas, you may need to synchronize the DOM and the pixels[i][j]. In 2D context, the browser handles geometry synchronization automatically by default, while in 3D you need to create a transform and pass it to the `updateElementGeometry()` method.
+
+
+To update the geometry, pass a spatial transform to the method.  Learn more how to construct a transform for different contexts:
+* Synchronize geometry in 2D.
+* Synchronize geometry in WebGL.
+* Synchronize geometry in WebGPU.
+Manage hit-test stacking order
+By default, every time an element’s geometry is updated, the browser brings it to the top of the interaction stack (last drawn = topmost click target). You can control this behavior using `preserveHitTestOrder`:
+
+
+// Updates the backdrop without stealing clicks from foreground elements
+canvas.updateElementGeometry(backgroundElement, {
+  canvasTransform: customTransform,
+  preserveHitTestOrder: true
+});
+
+
+
+Option
+	Behavior
+	Use case
+	`preserveHitTestOrder: false` (default)
+	Moves the element to the top of the hit-test stack.
+	Foreground elements that should receive clicks first.
+	`preserveHitTestOrder: true`
+	Leaves the element at its current stack priority.
+	Background elements that need to be updated after the foreground elements.
+	
+
+Reset geometry
+To un-draw an element without removing it from the DOM, call `canvas.clearElementGeometry()`. This resets the element's canvas transform and marks it as offscreen in the accessibility tree:
+
+
+// Remove from canvas hit-testing and mark as offscreen 
+canvas.clearElementGeometry(childElement);
+
+Sizing and units
+When you draw HTML into a canvas, the browser operates in three coordinate systems at once:  CSS pixels, device pixels, and canvas grid pixels. 
+
+
+CSS pixels are used for measuring and positioning content during layout. The browser then scales them by devicePixelRatio to rasterize the page into physical device pixels. Because CSS pixels are a logical unit, positions and sizes often end up as fractions of a device pixel (for example, 10.5 CSS px × a DPR of 1.5 = 15.75 device px). A screen can only colour whole pixels, so the browser has to resolve anything that falls between them. It does this in two ways:
+
+
+* Snapping: box boundaries, borders and layer offsets are rounded to the nearest whole device pixel so they stay crisp
+* Anti-aliasing: for text glyphs, curves and transformed edges, partial coverage is blended into neighbouring pixels so they still look smooth and in the right place.
+
+
+A `<canvas>` has its own pixel grid, set by its `width` and `height` attributes, which is separate from both CSS pixels and device pixels. To display it, the browser resamples the canvas bitmap onto the physical pixel grid, blending neighbouring canvas pixels to fill each device pixel. To learn how the browser maps between CSS, canvas, and device pixels, see Pixel-perfect rendering with `devicePixelContentBox`.
+
+
+Your `drawable` HTML elements are laid out in CSS pixels. Because content drawn into a canvas can go through two conversions, from CSS pixels to the canvas grid and then from the canvas grid to physical pixels, each step that doesn't line up exactly adds another round of blending, and the result can look blurry. To avoid this, make the canvas grid match the physical pixel grid. This serves two purposes:
+* Consistent rendering: If the canvas maps 1:1 onto physical pixels, converting CSS pixels to canvas pixels produces the same result as the browser's conversion from CSS pixels to physical pixels for regular HTML.
+* No extra blending: If the canvas maps 1:1 onto physical pixels, converting it to device pixels doesn't add any blur.
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+Example of a pixel conversion that results in blurry content. The three grids don't line up: The canvas element is 360 × 180 CSS px, and the canvas size is 300 × 150 canvas grid pixels. At a device pixel ratio of 1.5, the canvas covers 540 × 270 device pixels. One CSS pixel spans 1.5 device pixels, and one canvas pixel spans 1.2 CSS px, or 1.8 device pixels (panel 1). When the circle is drawn, its position and radius are in canvas pixels, not CSS pixels, so the browser draws it into the 300 × 150 canvas bitmap and anti-aliases the edge (panel 2). To display the canvas, the browser then stretches this bitmap over 540 × 270 device pixels, so the browser has to interpolate: each device pixel takes a weighted mix of the nearest canvas pixels, which already contain the anti-aliased edge. The edge is blended a second time and spreads across several device pixels, so the circle looks blurry (panel 3). This could be avoided if the canvas grid matched the device pixels 1:1. The browser would then anti-alias the edge just once, directly on the device grid, and display the bitmap without resampling, so the edge stays crisp (panel 4).[k]
+
+
+
+
+For crisp rendering, the canvas grid must match the number of device pixels that the canvas covers: 540 × 270 in the example above.
+  
+
+The same canvas, 400 x 200 CSS pixels, on a screen with a DPR of 1.5. Left: the 400 x 200 canvas grid. Right: adjusted to the DPR, a 600 x 300 grid.
+
+
+Size the canvas grid with a resize observer
+The right grid size depends on the device, and it may change when the layout changes, when the user zooms the page, or when the user moves the window to a different display. So instead of hardcoding the grid size, let the browser tell you what it should be.
+
+
+To keep the canvas grid in sync with the canvas on screen, always size it with a `ResizeObserver` and adjust the canvas grid to `devicePixelContentBoxSize`:
+
+
+const observer = new ResizeObserver(([entry]) => {
+  const dpc = entry.devicePixelContentBoxSize;
+  canvas.width = dpc ? dpc[0].inlineSize : Math.round(entry.contentRect.width * window.devicePixelRatio);
+  canvas.height = dpc ? dpc[0].blockSize : Math.round(entry.contentRect.height * window.devicePixelRatio);
+});
+
+
+const supportsDevicePixelContentBox =
+  typeof ResizeObserverEntry !== 'undefined' &&
+  'devicePixelContentBoxSize' in ResizeObserverEntry.prototype;
+const options = supportsDevicePixelContentBox ? { box: 'device-pixel-content-box' } : {};
+observer.observe(canvas, options);
+
+Note: Setting `width` or `height` clears the canvas, even if the value doesn't change. In a 2D context, it also resets the context state. When your resize observer updates the grid because the canvas was resized, the `paint` event fires afterward in the same frame. If you change the grid size anywhere else, call `canvas.requestPaint()` to make sure that the paint event fires and you can redraw.
+Convert CSS pixels to canvas grid coordinates
+In your `paint` handler, you often combine DOM measurements with drawing calls—for example, to position an element based on its size. The two use different units:
+
+
+* Canvas pixels describe the canvas grid, which is sized by `canvas.width` and `canvas.height`. For example, the `dx`, `dy`, `dwidth`, and `dheight` parameters of the `drawElementImage()` drawing methods, or other canvas APIs parameters, such as `fillRect()` and `translate()`.
+* CSS pixels describe the page. DOM measurements such as `offsetWidth` and `clientWidth`, and pointer event coordinates such as `offsetX`, are in CSS pixels.
+
+
+Here's an overview of the units used by various API parameters:
+
+
+Value
+	Units
+	`canvas.width` and `canvas.height`
+	Canvas grid pixels
+	2D drawing parameters, including `dx`, `dy`, `dwidth`, and `dheight` of `drawElementImage()`
+	Canvas grid pixels
+	`width` and `height` returned by `canvas.ElementImageDefaultSize()`
+	Canvas grid pixels
+	Source rectangles: `sx`, `sy`, `swidth`, and `sheight` of `drawElementImage()` and `texElementSubImage2D()`; `sourceX`, `sourceY`, `sourceWidth`, and `sourceHeight` of `drawElementImageToTexture()`
+	CSS pixels
+	Texture sizes: `width` and `height` options of `texElementSubImage2D()`; `size` of `drawElementImageToTexture()`
+	Texture pixels. By default, the element's size in canvas grid pixels, rounded up
+	Element geometry: `getElementTransform()`, and the `canvasTransform` and `canvasClip` options of `updateElementGeometry()`
+	CSS pixels
+	DOM measurements, such as `offsetWidth`, `clientWidth`, `getBoundingClientRect()`, pointer event coordinates, and `contentBoxSize` of a resize observer entry
+	CSS pixels
+	`devicePixelContentBoxSize` of a resize observer entry
+	Device pixels
+	
+
+If you don't use the right units, the size of the HTML content drawn into canvas might not meet your expectations. You need to convert the CSS pixel value into canvas grid pixels when drawing HTML into canvas. To do so, calculate the ratio between the canvas grid size and the canvas CSS size: `canvas.width / cssContentWidth` horizontally, and `canvas.height / cssContentHeight` vertically. Your resize observer is a convenient place to calculate the ratio as follows:
+
+
+// The number of canvas grid pixels per CSS pixel  
+let scaleX = 1;
+let scaleY = 1;
+
+
+const observer = new ResizeObserver(([entry]) => {
+  const dpc = entry.devicePixelContentBoxSize;
+  const cssContentWidth = entry.contentRect.width;
+  const cssContentHeight = entry.contentRect.height;
+
+ // Best practice: make the canvas grid match the physical pixel grid
+  if (dpc) {
+    canvas.width = dpc[0].inlineSize;
+    canvas.height = dpc[0].blockSize;
+  } else {
+    canvas.width = Math.round(cssContentWidth * window.devicePixelRatio);
+    canvas.height = Math.round(cssContentHeight * window.devicePixelRatio);
+  }
+
+
+  scaleX = canvas.width / cssContentWidth;
+  scaleY = canvas.height / cssContentHeight;
+});
+
+
+const supportsDevicePixelContentBox =
+  typeof ResizeObserverEntry !== 'undefined' &&
+  'devicePixelContentBoxSize' in ResizeObserverEntry.prototype;
+const options = supportsDevicePixelContentBox ? { box: 'device-pixel-content-box' } : {};
+observer.observe(canvas, options);
+
+Then, multiply CSS pixel values by `scaleX` and `scaleY` before you pass them to the drawing method. For example, to center a drawable element in the canvas:
+
+
+const ctx = canvas.getContext('2d');
+const card = document.getElementById('card');
+
+
+canvas.onpaint = () => {
+  ctx.reset();
+
+
+  // offsetWidth and offsetHeight are in CSS pixels.
+  // Convert them to canvas grid coordinates.
+  const width = card.offsetWidth * scaleX;
+  const height = card.offsetHeight * scaleY;
+  const x = (canvas.width - width) / 2;
+  const y = (canvas.height - height) / 2;
+
+
+  // drawElementImage() takes canvas grid coordinates.
+  ctx.drawElementImage(card, x, y);
+};
+
+Finally, because `drawElementImage()` draws the element's border box, you can use `box-sizing: border-box` to include padding and border in the card's `width` and `height`, so that the card is drawn at the size that you set:
+#card {
+  <!-- Make width and height include padding and border -->
+  box-sizing: border-box;
+  width: 200px;
+  padding: 16px;
+}
+
+Understand accessibility of HTML-in-Canvas
+Generally, HTML content of a `<canvas content="drawable">` is exposed to accessibility in the same way as regular DOM, which means it is represented in the accessibility tree unless explicitly hidden using attributes like `aria-hidden="true"` or inert. However, there is one key exception: a `drawable` element whose rendered geometry has not yet been established or updated. 
+
+
+A `drawable` element inside a `<canvas content="drawable">` lacks rendered geometry if:
+* It has not yet been rendered with `drawElementImage()` which updates geometry automatically by default.
+* Its geometry has not been explicitly updated with `updateElementGeometry()`. 
+
+
+If a `drawable` element lacks rendered geometry, this `drawable` element and its `drawable` subtree are reported to the accessibility tree without geometry information. This is helpful, for example, to let screen readers access the semantic content, while signaling visual assistive tools (like magnifiers) to filter out the undrawn elements.
+
+
+TODO: a video demo of how this works with the mentioned assistive technologies
+
+
+Below is an example where the semantics of a figure, image, and caption are preserved while drawing the image and figure separately:
+
+
+<canvas id="canvas" width="400" height="300" content="drawable">
+  <figure id="figure">
+    <img drawable id="image" src="..." alt="image alt text" />
+    <figcaption drawable id="caption">A caption</figcaption>
+  </figure>
+</canvas>
+<script>
+  const ctx = canvas.getContext('2d');
+
+
+  canvas.onpaint = () => {
+    ctx.reset();
+    // Note: Because `preserveElementGeometry` defaults to false, the
+    // `drawElementImage` call automatically updates geometry, ensuring
+    // the image and caption have geometry information for accessibility.
+    ctx.drawElementImage(image, 0, 0);
+    ctx.drawElementImage(caption, 0, 200);
+  };
+</script>
+Fallback strategies
+TODO: Baseline status embed
+
+
+The HTML-in-Canvas API shipped in Chrome 157, and it might not yet be supported for some users. To make sure your solution works smoothly for everyone, make sure to check if the browser supports the API, and fall back to an alternative solution if necessary:
+
+
+export function supportsHtmlInCanvas() {
+  if (typeof document === 'undefined') return false;
+  const canvas = document.createElement('canvas');
+  canvas.setAttribute('content', 'drawable');
+  return canvas.content === 'drawable';
+}
+ 
+If the API is not supported, depending on your implementation goals, you can choose one of many alternative methods or tools: 
+* Alternative UI
+* Floating HTML overlays[l]
+* three-html-render library
+* Html2canvas
+* dom-to-image. 
+
+
+Note: The listed tools are community libraries and are third-party projects. They are not developed, maintained, or officially supported by Google or the Chrome team.
+Next steps
+* Learn how to render HTML in a 2D context 
+* Learn how to render HTML in a WebGL Canvas 
+* Learn how to render HTML in a WebGPU Canvas 
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+Render HTML into 2D canvas 
+The HTML-in-Canvas API allows you to render interactive, accessible DOM subtrees directly into a 2D canvas context. Read the HTML-in-Canvas overview to learn more about the API and its benefits.
+
+
+This guide demonstrates how to render HTML into a 2D canvas. Rendering a HTML-in-Canvas in a 2D context requires the following steps:
+1. Prepare your canvas. Declaratively set the right attributes to let the browser know it should render HTML into a canvas. This setup is identical across 2D, WebGL, and WebGPU contexts. Learn how to set your canvas up and how to declare HTML elements to be drawn independently. 
+2. Draw the element image into the canvas.
+3. [Optional] Synchronize the DOM and the pixels.
+Draw HTML elements into 2D canvas
+Once the canvas is ready elements are marked as `drawable`, render them into the 2D context using the `drawElementImage()` method.
+
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const childElement1 = document.getElementById("childElement1");
+const childElement2 = document.getElementById("childElement2");
+
+
+canvas.onpaint = () => {
+        ctx.reset();
+// 1. Draw the primary element at coordinate (20, 20) 
+ctx.drawElementImage(childElement1, 20, 20); 
+// 2. Draw the secondary nested button at a custom offset 
+ctx.drawElementImage(childElement2, 40, 90);
+}
+
+
+
+TODO: embed the demo
+
+
+`drawElementImage()` supports 3-argument, 5-argument, 7-argument,  and 9-argument forms and accepts an optional `options` parameter:
+
+
+// 1. Basic position: (element, dx, dy, options?)
+ctx.drawElementImage(targetElement, 100, 150);
+
+
+// 2. Scaled / resized: (element, dx, dy, dWidth, dHeight, options?)
+ctx.drawElementImage(targetElement, 100, 150, 180, 60);
+
+
+// 3. Cropped, default size: (element, sx, sy, swidth, sheight, dx, dy, options?)
+ctx.drawElementImage(targetElement, 0, 0, 90, 30, 100, 150);
+
+
+// 4. Cropped and resized: (element, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight, options?) 
+ctx.drawElementImage(targetElement, 0, 0, 90, 30, 100, 150, 180, 60);
+
+
+
+
+
+
+
+Overload form
+	Parameters
+	Layout effect
+	Default size
+	`(element, dx, dy)`
+	The whole element at its default size, with the top-left corner at (`dx`, `dy`)
+	Custom destination box
+	`(element, dx, dy, dwidth, dheight)`
+	Scales the full element image into a `dw × dh` viewport on canvas.
+	Cropped, default size
+	`(element, sx, sy, swidth, sheight, dx, dy)`
+	Only the `swidth × sheight` area starting at (`sx`, `sy`), drawn at that area's default size (the same scale as the default-size form).
+	Source slice to destination
+	`(element, sx, sy, swidth, sheight, dx, dy, dwidth, dheight)`
+	Crops the source element starting at (`sx`, `sy`) with dimensions `swidth × sheight`, then maps it to destination (`dx`, `dy`, `dwidth`, `dheight`).
+	
+
+Synchronize the DOM and the pixels
+Because `<canvas>` rendering is imperative while DOM layout and CSS styling are reactive, the browser needs a mechanism to keep the rendered canvas pixels, interactive hit-test regions, and accessibility trees synchronized. Before diving into how to synchronize the DOM and the pixels, make sure you understand the `paint` event that triggers when DOM elements update and need to be redrawn.
+
+
+In 2D canvas contexts, the browser automatically synchronizes the element's layout coordinates, accessibility bounds, and pointer hit-testing with the drawn canvas coordinates.
+Manually update element geometry
+In advanced scenarios, you can opt out of automatic geometry synchronization and control spatial transforms manually. Pass `{ preserveElementGeometry: true }` to `drawElementImage()` to prevent the browser from automatically overriding the element's existing hit-test coordinates:
+
+
+// 1. Draw the element without altering its existing hit-test bounds
+ctx.drawElementImage(targetElement, elementX, 200, { preserveElementGeometry: true });
+
+
+// 2. Construct a custom transform matrix as needed,
+// assuming scaleX/scaleY = canvas grid pixels per CSS pixel, 
+// from your resize observer (see "Units and sizing"). 
+ const currentTransform = new DOMMatrix();
+ currentTransform.a = 1.5;    // scale X
+ currentTransform.e = x / scaleX; // translate X: grid px → CSS px
+ currentTransform.f = y / scaleY; // translate Y: grid px → CSS px
+
+
+// 3. Explicitly apply the custom transform
+canvas.updateElementGeometry(targetElement, { canvasTransform: currentTransform });
+
+Next steps
+* Understand the core technical concepts behind HTML-in-Canvas
+* Learn how to render HTML in a WebGL Canvas 
+* Learn how to render HTML in a WebGPU Canvas 
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+
+
+HTML in WebGL canvas
+Rendering HTML inside a WebGL canvas allows you to use live DOM subtrees as dynamic GPU textures. Rendering HTML into a WebGL canvas allows you to apply shader effects on Live DOM or integrate interactive HTML into 3D scenes. 
+
+
+This guide demonstrates how to render HTML into a WebGL canvas. Learn more about HTML-in-Canvas in the API overview.[m]
+
+
+Rendering a HTML-in-Canvas in a WebGL context requires the following steps:
+1. Prepare your canvas. Declaratively set the right attributes to let the browser know it should render HTML into a canvas. This setup is identical across 2D, WebGL, and WebGPU contexts. Learn how to set your canvas up and how to declare HTML elements to be drawn independently.  
+2. Apply the HTML as a texture:
+   1. Pre-allocate GPU texture storage
+   2. Upload the DOM snapshot as texture
+3. Synchronize the DOM and the pixels.
+Draw HTML element as WebGL texture
+In WebGL, HTML elements are uploaded to the GPU as 2D textures using texElementSubImage2D(). 
+Pre-allocating texture storage
+Unlike 2D canvas which manages backing memory automatically, WebGL context requires explicit memory management. 
+Before uploading DOM pixels, you must pre-allocate GPU memory. This allows the browser to perform fast sub-image updates without triggering expensive GPU memory re-allocations.
+
+
+Pre-allocate buffer with the desired size parameters and the `srcData` set to `null`  as follows: 
+
+
+// Only allocate texture backing once
+if (!textureBufferAllocated) {
+// Pre-allocate texture backing with pre-determined size.
+gl.texImage2D(
+/* target */ gl.TEXTURE_2D,
+/* level */ 0,
+/* internalformat */ gl.RGBA8,
+/* width */ myElementWidth,
+/* height */ myElementHeight,
+/* border */ 0,
+/* format */ gl.RGBA,
+/* type */ gl.UNSIGNED_BYTE,
+/* srcData */ null
+);
+
+
+textureBufferAllocated = true;
+}
+
+For the texture to match the natural layout size of the HTML element, you can use `canvas.getElementImageDefaultSize()` to retrieve its default size in canvas grid pixels:
+
+
+
+const { width, height } = canvas.getElementImageDefaultSize(myElement);
+// Pre-allocate texture backing. Only do this once, or whenever the element
+// changes size.
+gl.texImage2D(
+   /* target */ gl.TEXTURE_2D,
+   /* level */ 0,
+   /* internalformat */ gl.RGBA8,
+   /* width */ Math.ceil(width),
+   /* height */ Math.ceil(height),
+   /* border */ 0,
+   /* format */ gl.RGBA,
+   /* type */ gl.UNSIGNED_BYTE,
+   /* srcData */ null);
+Upload the DOM snapshot as texture
+The next step is to upload the HTML element into your texture inside your render loop or `paint` listener. 
+canvas.onpaint = () => {
+// 1. Pre-allocate texture backing first
+// ...
+
+
+// 2. Upload HTML snapshot into the WebGL texture
+gl.texElementSubImage2D(
+  /* target  */ gl.TEXTURE_2D,
+  /* level   */ 0,
+  /* xoffset */ 0,
+  /* yoffset */ 0,
+  /* element */ myElement // or an ElementImage from `captureElementImage()`
+);
+
+
+// ... 
+};
+Synchronize geometry
+Unlike in 2D contexts, the browser cannot automatically infer where the texture appears on screen in 3D context. You need to align DOM hit-testing and accessibility bounding boxes with your 3D mesh manually.
+To do so, construct a `DOMMatrix` that maps the element’s border box to its rendered canvas pixel location, then apply it using `updateElementGeometry()`:
+
+
+canvas.addEventListener("paint", () => {
+  // 1. Upload fresh DOM snapshot to GPU texture
+  gl.bindTexture(gl.TEXTURE_2D, myTexture);
+  gl.texElementSubImage2D(gl.TEXTURE_2D, 0, 0, 0, myElement);
+
+
+  // 2. Draw your 3D scene
+  draw3DScene();
+
+
+  // 3. Construct the CSS-pixel transform mapping the element's
+  // border box to its drawn position on the canvas as needed
+  // (for example: scale and translate) 
+  const canvasTransform = new DOMMatrix();
+  // scale X
+  canvasTransform.a = canvas.clientWidth / myElement.offsetWidth;
+  // scale Y 
+  canvasTransform.d = canvas.clientHeight / myElement.offsetHeight;  
+  // translate X (CSS px) 
+  canvasTransform.e = 50;
+  // translate Y (CSS px)                                          
+  canvasTransform.f = 100;                                          
+
+
+  // 4. Update DOM position, accessibility focus rings, and pointer hit-testing
+  canvas.updateElementGeometry(myElement, {
+    canvasTransform: canvasTransform,
+  });
+});
+
+
+
+Next steps
+* Understand the core technical concepts behind HTML-in-Canvas
+* Learn how to render HTML in a 2D context 
+* Learn how to render HTML in a WebGPU Canvas 
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+HTML in WebGPU Canvas
+Rendering HTML inside a WebGPU canvas offers all the benefits that HTML in a WebGL canvas does, such as applying shader effects on DOM or integrating interactive HTML into 3D scenes. However, WebGPU offers significant benefits compared to WebGL. 
+
+
+This guide demonstrates how to render HTML into a WebGPU canvas. Learn more about HTML-in-Canvas in the API overview[n].
+
+
+Rendering a HTML-in-Canvas in a WebGPU context requires the following steps:
+1. Prepare your canvas. Declaratively set the right attributes to let the browser know it should render HTML into a canvas. This setup is identical across 2D, WebGL, and WebGPU contexts. Learn how to set your canvas up and how to declare HTML elements to be drawn independently. 
+2. Apply the HTML as a texture:
+   1. Pre-allocate GPU texture storage
+   2. Upload the DOM snapshot as texture
+3. Synchronize the DOM and the pixels.
+Draw HTML element as WebGPU texture
+In WebGPU, HTML elements are uploaded to the GPU as 2D textures using `drawElementImageToTexture()`. 
+Pre-allocating texture storage
+WebGPU requires explicit memory allocation. Before copying DOM pixels into a texture, you must reserve GPU VRAM using the device.createTexture() method:
+
+
+const context = canvas.getContext("webgpu");
+
+
+// Pre-allocate the texture size as needed
+// For example: HTML element CSS size × devicePixelRatio 
+const size = canvas.getElementImageDefaultSize(myElement);
+const myElementWidth = Math.ceil(size.width);
+const myElementHeight = Math.ceil(size.height);
+
+
+// Pre-allocate the GPUTexture backing (run once during setup)
+const myTexture = device.createTexture({
+  size: {
+    width: myElementWidth,
+    height: myElementHeight,
+    depthOrArrayLayers: 1, // optional (defaults to 1)
+  },
+  format: "rgba8unorm",
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+Draw HTML element image
+In WebGPU, `drawElementImageToTexture` method draws the snapshot of the HTML element. The method takes two dictionary objects: `source` and `destination`.
+
+
+`source` defines the source DOM element to rasterize and optional sub-rectangle clipping coordinates that allows you to only copy a portion of the element into your texture rather than the entire DOM node:
+
+
+Property
+	Type
+	Description
+	`source`
+required
+	Element | ElementImage
+	The target DOM element (or pre-captured ElementImage instance) to draw into the texture.
+	`sourceX`
+optional (all four or none)
+	float
+	The horizontal X-coordinate offset (in CSS pixels) defining the top-left corner of the source sub-rectangle slice.
+	`sourceY`
+optional (all four or none)
+	float
+	The vertical Y-coordinate offset (in CSS pixels) defining the top-left corner of the source sub-rectangle slice.
+	`sourceWidth`
+optional (all four or none)
+	float
+	The width (in CSS pixels) of the source sub-rectangle to crop and rasterize.
+	`sourceHeight`
+optional (all four or none)
+	float
+	The height (in CSS pixels) of the source sub-rectangle to crop and rasterize.
+	
+
+`destination` defines the target GPU texture that receives the rendered DOM snapshot, along with optional destination offsets, mip levels, and copy dimensions to place the pixels into a specific region of the texture:
+
+
+Property
+	Type
+	Description
+	`texture`
+required
+
+
+	GPUTexture
+	The pre-allocated destination WebGPU texture that will receive the rendered DOM pixel snapshot. 
+	`size`
+optional
+	GPUExtent3D
+	The width and height (in physical texture pixels (for example, `{ width, height }`) to scale and rasterize the element within the destination texture.
+	`origin`
+optional
+	GPUOrigin3D
+	The 3D destination offset (x, y, z) within the texture where the rasterized pixels will be written. Default to `[0, 0, 0]`
+	`mipLevel`
+optional
+	GPUIntegerCoordinate
+	The specific mipmap level of the destination texture to write into. Default is `0`
+	`aspect`
+optional
+	GPUTextureAspect
+	Specifies which texture aspect to copy into ("all", "stencil-only", or "depth-only"). Default to `all`
+	`colorSpace`
+optional
+	PredefinedColorSpace
+	The destination color space (e.g. "srgb", "display-p3") for color conversion upon upload. Defaults to `srgb`.
+	`premultipliedAlpha`
+optional
+	boolean
+	Whether alpha should be premultiplied into the color channels during upload. Defaults to `false`
+	
+
+Upload the element into your texture inside the `paint` event by calling the `drawElementImageToTexture()` method:
+canvas.addEventListener("paint", (event) => {
+  const sourceDict = {
+    source: myElement,
+    // Optional sub-rectangle crop in CSS pixels
+    // (defaults to full element if omitted):
+    sourceX: 0,
+    sourceY: 0,
+    sourceWidth: myElement.offsetWidth,
+    sourceHeight: myElement.offsetHeight,
+  };
+
+
+  const destDict = {
+    texture: myTexture,
+    size: { width: myElementWidth, height: myElementHeight },
+  };
+
+
+  // Upload the latest DOM snapshot into the pre-allocated GPUTexture
+  device.queue.drawElementImageToTexture(sourceDict, destDict);
+});
+
+
+Synchronize geometry
+To align DOM hit-testing and accessibility focus rings with the rendered canvas output, construct a `DOMMatrix` transform and apply it with the `updateElementGeometry()` method:
+
+
+// Construct a transform as needed in CSS pixels
+// relative to the canvas, for example: 
+// 1/8 of the canvas width from the left edge, vertically centered. 
+// scaleX, scaleY: canvas grid pixels per CSS pixel (from resize observer)
+const canvasCssWidth = canvas.width / scaleX;
+const canvasCssHeight = canvas.height / scaleY;
+const elementCssHeight = canvas.getElementImageDefaultSize(myElement).height / scaleY;
+const x = canvasCssWidth / 8;
+const y = (canvasCssHeight - elementCssHeight) / 2;
+const transform = new DOMMatrix().translate(x, y);
+
+
+// Synchronize the element's DOM hit-testing and accessibility geometry
+canvas.updateElementGeometry(myElement, { canvasTransform: transform });
+
+Next steps
+* Understand the core technical concepts behind HTML-in-Canvas
+* Learn how to render HTML in a 2D context 
+* Learn how to render HTML in a WebGL Canvas 
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+
+
+
+
+HTML in Offscreen Canvas[o]
+An `OffscreenCanvas` provides a canvas rendering context that can be transferred and executed entirely inside a dedicated Web Worker thread, decoupled from the browser's main thread.
+In high-performance web applications, compute-intensive rendering loops, particle simulations, or continuous 3D rasterization can consume significant CPU and GPU cycles.
+When these operations run on the main thread, they compete with user clicks, smooth scrolling, and CSS animations. Moving canvas rendering to an `OffscreenCanvas` in a Web Worker ensures that even if the worker's rendering pipeline slows down or temporarily stalls, the main browser thread remains completely responsive and stutter-free.
+Offload rendering to a worker thread
+Because Web Workers do not have access to the document or live DOM elements, offloading HTML-in-Canvas rendering involves transferring canvas ownership and passing element snapshots between threads.
+Main thread setup
+To offload the canvas to the worker thread, set up your main thread as follows:
+1. Create the worker.
+2. Transfer canvas control to an OffscreenCanvas instance using `transferControlToOffscreen()`.
+3. Listen for the `paint` event on the `<canvas content="drawable">`. Inside the listener, capture a snapshot of the DOM element using `captureElementImage(element)`, then post it to the worker:
+// main thread
+
+
+// 1. Instantiate the Web Worker
+const worker = new Worker("/path/to/worker");
+
+
+// 2. Transfer canvas control to the worker
+const offscreen = canvas.transferControlToOffscreen();
+worker.postMessage({ type: "INIT", canvas: offscreen }, [offscreen]);
+
+
+// 3. Capture and forward element snapshots on paint
+canvas.addEventListener("paint", () => {
+  const elementImage = canvas.captureElementImage(htmlElement);
+  // Post the ElementImage snapshot to the worker
+  worker.postMessage({ type: "DRAW", image: elementImage });
+});
+Worker thread setup
+In the worker, listen for messages to receive the offscreen canvas and draw the incoming `ElementImage` snapshots:
+// worker thread 
+self.onmessage = (event) => {
+  const { type, canvas, image } = event.data;
+
+
+  if (type === "INIT") {
+    // Obtain 2D, WebGL, or WebGPU context on the worker thread
+    ctx = canvas.getContext("2d");
+  } else if (type === "DRAW" && ctx) {
+    // Clear and draw the ElementImage snapshot
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.drawElementImage(image, 20, 20);
+  }
+};
+
+Learn how to draw an HTML element in 2D context, WebGL, or WebGPU  contexts. 
+Synchronize geometry from a Worker
+Web Workers do not have access to DOM APIs (for example, `document.getElementById`, `element.style`, or DOM node references). Because of this sandbox boundary, the worker thread posts a task to the main thread, and the update happens on the main thread. When the update is complete, the main thread fires an `elementgeometryupdate` event on the associated `HTMLCanvasElement`.
+When a worker calls `updateElementGeometry()` or `clearElementGeometry()` it then asynchronously posts[p] the batched updates to the main thread:
+// worker thread 
+const canvasTransform = new DOMMatrix().translateSelf(50, 100);
+
+
+// Pass the ElementImage reference and custom transform from the worker
+offscreenCanvas.updateElementGeometry(elementImage, {
+  canvasTransform: canvasTransform
+});
+
+The main thread applies the changes to the underlying DOM elements. Once the main thread finishes updating the DOM interaction bounding boxes, it dispatches an `elementgeometryupdate` event on the associated `<canvas>` element containing the list of updated elements:
+// main thread
+// Listen for confirmation of applied geometry changes 
+canvas.addEventListener("elementgeometryupdate", (event) => {
+  console.log("DOM hit-test geometry successfully updated from worker:", event);
+});
+
+Next steps
+* Learn how to render HTML in a 2D context 
+* Learn how to render HTML in a WebGL Canvas 
+* Learn how to render HTML in a WebGPU Canvas
+* Learn about fallback strategies 
+* File an issue on Github to share your feedback
+* Check out the HTML-in-Canvas demo collection by the community
+[a]I landed metrics for offscreen canvas transferred to a worker thread [1] and it is quite rare at 0.25% of page views. Given the complexity of offscreen canvas, I think it would actually be a good idea to focus on other topics rather than this one.
+
+
+[1] https://chromestatus.com/metrics/feature/timeline/popularity/5987
+[b]I'm happy with both keeping it or leaving it. 
+
+
+Since I've already tried HIC in a worker and have a demo [1], I think publishing the content doesn't hurt and doesn't require too much extra effort (unless there we know there are gonna be breaking changes and we need to put effort to maintain it).
+
+
+[1] https://chrome.dev/html-in-canvas/demos/offscreen-html-in-canvas.html
+[c]A lot of this is just a repeat of the blog post. I'd remove all of that and add a note linking to the blog post. Having it here is redundant.
+[d]This feels like the beginning of the actual content.
+[e]I'm not sure this is really a third option, as you could use a coding agent with both of the previous approaches.
+[f]Do all of these support all of the contexts mentioned in the previous section?
+[g]Can you check to see if three.js has been updated to support the new API changes?
+[h]The PR is pending review by the threejs maintainers: https://github.com/mrdoob/three.js/pull/34732
+[i]For people who are brand new to the feature, I don't think "synchronize the DOM and the pixels" will make any sense. I think this needs to be fleshed out with details, something like:
+
+
+"Unlike regular HTML content, the position and size of an element drawn into a canvas cannot be calculated entirely based on computed style; it depends on the arguments given to the drawElementImage call. As a consequence, the browser must take those arguments into account to give accurate responses to layout queries (e.g. `getBoundingClientRect()`) and when targeting input events ("hit testing")."
+[j]Maybe also:
+
+
+"For 2D contexts, the arguments to drawElementImage (along with computed style) are sufficient to determine on-screen location. However, for WebGL and WebGPU contexts they are not sufficient: because those API's render the element into a texture, which can then be used in arbitrary ways by a shader program, the developer must explicitly tell the browser what the size and position of the element is, via updateElementGeometry. This method can also be used in 2D canvas to handle non-standard situations, where the developer wants to override the size and position determined by the arguments to drawElementImage."
+[k]I would put this into the regular text rather than all in the caption (captions are quite small and hard to read). Move it above, then say "The following image demonstrates a pixel conversion..."
+[l]Is there a link to an example of this?
+[m]add the link.
+[n]link to overview
+[o]As per feedback, this page can be omitted: https://docs.google.com/document/d/154ffUms_Gdo-15ZBU3U9RNcZKVXsdF_8KX9tKmuvShc/edit?disco=AAACHFCqXH8
+[p]Double-check: is it posted automatically?

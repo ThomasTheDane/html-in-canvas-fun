@@ -308,7 +308,6 @@ body {
   border: none;
   box-shadow: none;
   transform-origin: 0 0;
-  will-change: transform;
   user-select: text;
   -webkit-user-select: text;
   cursor: auto;
@@ -563,143 +562,124 @@ body {
 }
 
 /* ==========================================================================
-   LEAF #4: INTERACTIVE NEWSLETTER FORM (CLEAN, BORDERLESS BOTANICAL ETCHING)
+   SINGLE-SENTENCE RAINFOREST ANIMAL FUN FACT LEAVES (LEAVES 0..3)
    ========================================================================== */
 
-.leaf-newsletter-form {
+.leaf-fact-simple {
+  min-height: 356px;
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  justify-content: center;
+  padding: 1.6rem 2.1rem;
+}
+
+.leaf-fact-simple .leaf-header {
+  margin-bottom: 0.7rem;
+}
+
+.leaf-fact-simple .leaf-body h1,
+.leaf-fact-simple .leaf-body h2 {
+  font-size: 2.05rem;
+  margin: 0 0 0.65rem 0;
+  color: #fffef4;
+  text-shadow: 0 2px 8px rgba(1, 14, 6, 0.9);
+}
+
+.leaf-single-fact {
+  margin: 0;
+  font-size: 1.24rem;
+  font-weight: 500;
+  line-height: 1.52;
+  color: #f2fff5;
+  text-shadow: 0 2px 6px rgba(1, 12, 5, 0.88);
+}
+
+/* ==========================================================================
+   LEAF #4: WRITE YOUR NAME ON THE LEAF (STROKE-BY-STROKE LIGHT ETCHING)
+   ========================================================================== */
+
+.leaf-name-card {
+  min-height: 356px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.leaf-name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
   margin-top: 0.15rem;
 }
 
-.form-row-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-field label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #f4fff6;
-  margin-bottom: 0.06rem;
-}
-
-.req-star {
-  color: var(--sunbeam-gold);
-}
-
-/* Format hints placed ABOVE inputs so autocomplete popovers do not cover them */
-.field-hint {
-  display: block;
-  font-size: 0.68rem;
-  color: #b7ecc7;
-  margin-bottom: 0.16rem;
-}
-
-.form-field input[type="text"],
-.form-field input[type="email"] {
-  font-size: 1rem;
-  min-height: 44px;
-  padding: 0.4rem 0.65rem;
-  border-radius: 10px;
-  border: none;
-  background: rgba(4, 26, 13, 0.52);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(145, 255, 180, 0.28);
-  color: #ffffff;
-}
-
-.form-field input::placeholder {
-  color: rgba(195, 240, 208, 0.55);
-}
-
-/* Deferred Validation After Interaction (:user-invalid & :user-valid + Fallbacks) */
-.form-field input:user-invalid,
-.form-field input.user-invalid-fallback {
-  background-color: rgba(78, 18, 16, 0.58);
-  box-shadow: inset 0 -2px 0 #ff6e5e;
-}
-
-.form-field input:user-valid,
-.form-field input.user-valid-fallback {
-  background-color: rgba(10, 52, 26, 0.58);
-  box-shadow: inset 0 -2px 0 #64f596;
-}
-
-.field-error-msg {
-  display: none;
-  margin-top: 0.15rem;
-  font-size: 0.7rem;
-  color: #ffaba0;
+.leaf-name-label {
+  font-size: 0.84rem;
   font-weight: 600;
+  color: #d9fce3;
+  text-shadow: 0 1px 4px rgba(1, 12, 5, 0.85);
 }
 
-.form-field input:user-invalid + .field-error-msg,
-.form-field input.user-invalid-fallback + .field-error-msg {
-  display: block;
-}
-
-.courier-fieldset {
-  margin: 0;
-  padding: 0.15rem 0;
-  border: none;
-  background: transparent;
-}
-
-.courier-fieldset legend {
-  padding: 0;
-  margin-bottom: 0.22rem;
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: #ffe38f;
-}
-
-.courier-radio-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.4rem;
-}
-
-.courier-option {
+.leaf-name-input-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(6, 36, 18, 0.48);
-  border: none;
-  font-size: 0.74rem;
-  cursor: pointer;
-}
-
-.courier-option input[type="radio"] {
-  accent-color: var(--chlorophyll-glow);
-  width: 0.95rem;
-  height: 0.95rem;
-  margin: 0;
-}
-
-.form-submit-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 0.6rem;
-  flex-wrap: wrap;
 }
 
-.newsletter-feedback {
-  font-size: 0.76rem;
-  color: #ffe699;
-  font-weight: 600;
-  padding: 0.15rem 0;
-  background: transparent;
+.leaf-name-input-row input[type="text"] {
+  flex: 1;
+  font-size: 1.02rem;
+  min-height: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 12px;
   border: none;
+  background: rgba(3, 24, 12, 0.62);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6), inset 0 -1.5px 0 rgba(145, 255, 180, 0.42);
+  color: #ffffff;
+  outline: none;
+}
+
+.leaf-name-input-row input[type="text"]:focus {
+  background: rgba(6, 38, 19, 0.78);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(247, 213, 116, 0.75);
+}
+
+.leaf-name-input-row input[type="text"]::placeholder {
+  color: rgba(195, 240, 208, 0.58);
+}
+
+.btn-etch-submit {
+  min-height: 44px;
+  padding: 0.45rem 1.15rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.leaf-inscription-stage {
+  margin-top: 0.55rem;
+  padding: 0.35rem 0.2rem 0.1rem 0.2rem;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at center, rgba(4, 32, 16, 0.46) 0%, rgba(2, 16, 8, 0.12) 78%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.name-etch-svg {
+  display: block;
+  width: 100%;
+  max-width: 590px;
+  height: 128px;
+  overflow: visible;
+}
+
+.leaf-etch-caption {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: #ffe89e;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(1, 12, 5, 0.88);
 }
 
 /* ==========================================================================

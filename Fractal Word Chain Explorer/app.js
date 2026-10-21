@@ -141,6 +141,9 @@ resizeObserver.observe(
 // ============================================================================
 
 async function checkHardwareStatus() {
+  if (navigator.storage && typeof navigator.storage.persist === 'function') {
+    navigator.storage.persist().catch(() => {});
+  }
   if (!hardwareBadge) return;
   if (navigator.gpu) {
     try {
@@ -163,6 +166,65 @@ let isModelLoading = false;
 let loadedModelId = null;
 let isGenerating = false;
 let pendingActionAfterLoad = null;
+let cachedModelsMap = {}; // modelId -> { cached: boolean, dtypes: string[], totalBytes: number }
+let hasAutoRestoredCachedModel = false;
+const LAST_MODEL_STORAGE_KEY = 'fractal_last_active_model_id';
+
+// Capture base option labels so we can append "• CACHED" badges cleanly
+const baseModelOptionLabels = new Map();
+if (modelSelect) {
+  Array.from(modelSelect.options).forEach((opt) => {
+    baseModelOptionLabels.set(opt.value, opt.textContent.trim().replace(/\s+/g, ' '));
+  });
+  try {
+    const savedModelId = localStorage.getItem(LAST_MODEL_STORAGE_KEY);
+    if (savedModelId && baseModelOptionLabels.has(savedModelId)) {
+      modelSelect.value = savedModelId;
+    }
+  } catch (_e) {
+    // Ignore storage access errors
+  }
+}
+
+function isModelCachedLocally(modelId) {
+  return Boolean(cachedModelsMap[modelId]?.cached);
+}
+
+function syncModelCacheDropdownAndControls() {
+  if (!modelSelect) return;
+  Array.from(modelSelect.options).forEach((opt) => {
+    const baseLabel = baseModelOptionLabels.get(opt.value) || opt.textContent.trim();
+    if (isModelCachedLocally(opt.value)) {
+      opt.textContent = baseLabel.includes('• CACHED')
+        ? baseLabel
+        : baseLabel.replace(/\)$/, ' • CACHED)');
+    } else {
+      opt.textContent = baseLabel;
+    }
+  });
+
+  if (isModelLoading) return;
+
+  const selectedId = modelSelect.value;
+  const shortName = (selectedId || '').split('/').pop();
+  if (loadedModelId && selectedId === loadedModelId && isModelReady) {
+    if (btnLoadModel) {
+      btnLoadModel.textContent = '✓ CACHED & READY';
+    }
+  } else if (isModelCachedLocally(selectedId)) {
+    if (btnLoadModel) {
+      btnLoadModel.textContent = '⚡ LOAD CACHED';
+    }
+    setModelStatusUI('standby', `${shortName} CACHED IN STORAGE — READY OFFLINE`, 100);
+  } else {
+    if (btnLoadModel) {
+      btnLoadModel.textContent = '⬇ FETCH MODEL';
+    }
+    if (!isModelReady) {
+      setModelStatusUI('standby', 'STANDBY — READY TO FETCH', 0);
+    }
+  }
+}
 
 function setModelStatusUI(state, message, percent = null) {
   if (modelStatusDot) {
@@ -362,6 +424,8 @@ function getNodeWordWidth(node, fallback = 110) {
 let renderMode = 'linear'; // 'linear' | 'spiral'
 let spiralPromptPrefixWords = []; // Preceding words of root prompt curved along outer spiral in 'spiral' mode
 let currentSpiralRefRadius = 210;
+let spiralBackwardSubStep = 0; // Continuous 0..1 fractional step while unwinding backward in spiral mode
+let lastSpiralBackwardWheelMs = 0;
 
 function toggleRenderMode(explicitMode = null) {
   renderMode = explicitMode || (renderMode === 'linear' ? 'spiral' : 'linear');
@@ -377,6 +441,7 @@ function toggleRenderMode(explicitMode = null) {
   }
   canvasViewport?.classList.toggle('is-spiral-mode', isSpiral);
 
+  spiralBackwardSubStep = 0;
   manualPanOffsetX = 0;
   recomputeTreeLayout();
 }
@@ -482,6 +547,8 @@ function recomputeLinearTreeLayout() {
   // 1. Lay out the Sentence Developed Thus Far along world Y = 0 (vertically centered)
   let cursorX = 0;
   let tipRightWorldX = 0;
+  let rootRightWorldX = 0;
+  let firstStepRightWorldX = 0;
 
   sentencePath.forEach((nodeId, idx) => {
     const node = treeNodes.get(nodeId);
@@ -502,6 +569,11 @@ function recomputeLinearTreeLayout() {
     setNodeLinearTarget(node, cursorX, 0);
 
     tipRightWorldX = node.targetX + w;
+    if (idx === 0) {
+      rootRightWorldX = tipRightWorldX;
+    } else if (idx === 1) {
+      firstStepRightWorldX = tipRightWorldX;
+    }
     const wordGap = isRoot ? 8 : node.isWordStart === false ? 1 : 6;
     cursorX += w + wordGap;
   });
@@ -543,6 +615,7 @@ function recomputeLinearTreeLayout() {
   const col2SlotCount = Math.max(col2Nodes.length, baseOptionCount);
   const col2SlotPitch = (usableWindowHeight * 0.92) / col2SlotCount;
   const col2BoxH = Math.max(42, Math.min(126, Math.round(col2SlotPitch - 4)));
+  let maxCol2Width = 160;
 
   col2Nodes.forEach((lookNode, idx) => {
     if (!lookNode.domEl) return;
@@ -561,6 +634,9 @@ function recomputeLinearTreeLayout() {
       lookNode.hasInitializedPos = true;
     }
     setNodeLinearTarget(lookNode, col2WorldX, targetY);
+
+    const w = getNodeWordWidth(lookNode, 150) + 24;
+    if (w > maxCol2Width) maxCol2Width = w;
   });
 
   // 4. Hide all other nodes so only the active sentence + next word columns are shown
@@ -580,7 +656,8 @@ function recomputeLinearTreeLayout() {
   });
 
   // 5. Position camera so the sentence developed thus far sits vertically centered
-  // and its right edge sits at ~1/3 of the chart window width
+  // and its right edge sits at ~1/3 of the chart window width, while clamping horizontal
+  // pan so you cannot scroll way off to the left past the sentence & first word suggestions.
   const oneThirdScreenX = viewportCssWidth * 0.35;
   let desiredRightScreenX = oneThirdScreenX;
   if (sentencePath.length === 1) {
@@ -590,8 +667,48 @@ function recomputeLinearTreeLayout() {
     );
   }
 
+  const baseCameraX = desiredRightScreenX - tipRightWorldX;
+
+  let rootCol1MaxWidth = 175;
+  root.childrenIds.forEach((cid) => {
+    const cNode = treeNodes.get(cid);
+    if (cNode) {
+      const cw = getNodeWordWidth(cNode, 160) + 28;
+      if (cw > rootCol1MaxWidth) rootCol1MaxWidth = cw;
+    }
+  });
+
+  const firstSuggestionsRightWorldX =
+    sentencePath.length === 1
+      ? col1WorldX + maxCol1Width
+      : Math.max(firstStepRightWorldX, rootRightWorldX + 44 + rootCol1MaxWidth);
+
+  const col1RightWorldX = col1Nodes.length > 0 ? col1WorldX + maxCol1Width : tipRightWorldX;
+  const rightMostVisibleWorldX =
+    col2Nodes.length > 0 ? col2WorldX + maxCol2Width : col1RightWorldX;
+
+  const rightMargin = 28;
+  // Stop scrolling left where the initial prompt + first set of word suggestions remain visible on the right side
+  const maxCameraX = Math.max(
+    baseCameraX,
+    viewportCssWidth - rightMargin - firstSuggestionsRightWorldX
+  );
+  // Stop scrolling/dragging the sentence off to the left once the rightmost suggestions are in view
+  // and never let the first set of word suggestions after the initial prompt scroll off the left side
+  const minCameraX = Math.min(
+    baseCameraX,
+    Math.max(
+      viewportCssWidth - rightMargin - rightMostVisibleWorldX,
+      rightMargin - rootRightWorldX
+    )
+  );
+
+  const unclampedCameraX = baseCameraX + manualPanOffsetX;
+  const clampedCameraX = Math.max(minCameraX, Math.min(maxCameraX, unclampedCameraX));
+  manualPanOffsetX = clampedCameraX - baseCameraX;
+
   camera.targetZoom = 1.0;
-  camera.targetX = desiredRightScreenX - tipRightWorldX + manualPanOffsetX;
+  camera.targetX = clampedCameraX;
   camera.targetY = viewportCssHeight * 0.5;
 }
 
@@ -646,8 +763,13 @@ function recomputeSpiralTreeLayout() {
 
   const visibleSet = new Set();
 
-  // 1. Lay out the Sentence Developed Thus Far backwards from `tipNode` along the logarithmic spiral
-  let runningTheta = tipTheta;
+  // 1. Lay out the Sentence Developed Thus Far backwards from `tipNode` along the logarithmic spiral.
+  // When scrolling backward in spiral mode, `spiralBackwardSubStep` (0..1) continuously rotates
+  // the entire spiral so the preceding word glides smoothly into `tipTheta` before popping.
+  const tipWordW = getNodeWordWidth(tipNode, 92);
+  const tipAngularStep =
+    sentencePath.length > 1 ? Math.max(0.35, Math.min(0.56, (tipWordW + 32) / Rref)) : 0;
+  let runningTheta = tipTheta + spiralBackwardSubStep * tipAngularStep;
 
   for (let idx = sentencePath.length - 1; idx >= 0; idx--) {
     const node = treeNodes.get(sentencePath[idx]);
@@ -674,8 +796,12 @@ function recomputeSpiralTreeLayout() {
 
     setNodeSpiralTarget(node, runningTheta, radius, scale, rotation);
 
-    // Also branch out unchosen sibling options at recent steps along the spiral!
-    if (idx < sentencePath.length - 1 && idx >= Math.max(0, sentencePath.length - 6)) {
+    // Also branch out unchosen sibling options at recent steps on the left/bottom side of the spiral
+    if (
+      idx < sentencePath.length - 1 &&
+      idx >= Math.max(0, sentencePath.length - 5) &&
+      runningTheta >= tipTheta - Math.PI * 1.25
+    ) {
       const chosenChildId = sentencePath[idx + 1];
       const unchosenSiblings = node.childrenIds
         .filter((cid) => cid !== chosenChildId)
@@ -731,9 +857,10 @@ function recomputeSpiralTreeLayout() {
   }
   spiralPromptPrefixWords = newPrefixTokens;
 
-  // 3. Lay out Column 1: Available Next-Word Choices branching off from the end of the current spiral
+  // 3. Lay out Column 1: Immediate Next-Word Choices in the spiral
   col1Nodes.forEach((opt, idx) => {
     if (!opt.domEl) return;
+    const wasHidden = opt.visualRole === 'hidden' || !opt.hasInitializedPos;
     visibleSet.add(opt.id);
 
     const isHighlighted = opt.id === highlightedOptionId;
@@ -748,26 +875,71 @@ function recomputeSpiralTreeLayout() {
     const optScale = isHighlighted ? 1.06 : 0.92;
     const optRotation = (idx - (col1Nodes.length - 1) / 2) * 0.085;
 
+    // If this option wasn't already visible as a popped-out lookahead word, start it small
+    // so it smoothly flows into its spiral slot. (If it WAS a lookahead word, it keeps its
+    // exact popped-out renderSpiralTheta/R/Scale and smoothly flows into the spiral!)
+    if (wasHidden) {
+      opt.renderSpiralTheta = optTheta - 0.10;
+      opt.renderSpiralR = optRadius * 1.14;
+      opt.renderScale = 0.34;
+      opt.renderRotation = 0;
+      opt.hasInitializedPos = true;
+    }
+
     setNodeSpiralTarget(opt, optTheta, optRadius, optScale, optRotation);
   });
 
-  // 4. Lay out Column 2: Inner Child Spiral lookahead options curling toward the eye of the spiral
+  // 4. Lay out Column 2: Next 5 options popping out in a very small font into the compact
+  // space between the hovered word and the outward part of the spiral.
   if (highlightedNode) {
-    const hTheta = highlightedNode.targetSpiralTheta ?? tipTheta + 0.65;
-    const hRadius = highlightedNode.targetSpiralR ?? Rref * 0.95;
+    const hTheta = highlightedNode.targetSpiralTheta ?? tipTheta + 0.56;
+    const hRadius = highlightedNode.targetSpiralR ?? Rref;
+    const hScale = highlightedNode.targetScale ?? 1.06;
+    const hX = hRadius * Math.cos(hTheta);
+    const hY = hRadius * Math.sin(hTheta);
+    const hRenderedW = getNodeWordWidth(highlightedNode, 96) * hScale;
+
+    // Start the compact pop-out cluster just outside the right edge of the hovered word
+    const pocketLeftX = hX + hRenderedW * 0.5 + 18;
+    const count = col2Nodes.length;
+    const lookScale = 0.34; // Very small font scale so all 5 options fit snugly in the gap
 
     col2Nodes.forEach((lookNode, idx) => {
       if (!lookNode.domEl) return;
+      const wasHidden = lookNode.visualRole === 'hidden' || !lookNode.hasInitializedPos;
       visibleSet.add(lookNode.id);
 
       lookNode.visualRole = 'lookahead-option';
       lookNode.domEl.className = 'fractal-node-el is-lookahead-option';
-      lookNode.domEl.style.setProperty('--node-box-h', '50px');
+      lookNode.domEl.style.setProperty('--node-box-h', '42px');
+      lookNode.domEl.style.minWidth = '0px';
 
-      const lookTheta = hTheta + 0.48 + idx * 0.31;
-      const lookRadius = Math.max(52, hRadius * (0.64 - idx * 0.058));
-      const lookScale = Math.max(0.56, 0.78 - idx * 0.04);
-      const lookRot = (idx - (col2Nodes.length - 1) / 2) * 0.10;
+      const offsetIdx = idx - (count - 1) / 2;
+      const lookW = getNodeWordWidth(lookNode, 84);
+      const renderedHalfW = lookW * lookScale * 0.5;
+      const arcBowX = Math.sin(((idx + 0.5) / Math.max(1, count)) * Math.PI) * 6;
+
+      const lx = pocketLeftX + arcBowX + renderedHalfW;
+      const ly = hY + offsetIdx * 13.5;
+
+      let lookTheta = Math.atan2(ly, lx);
+      while (lookTheta - hTheta > Math.PI) lookTheta -= Math.PI * 2;
+      while (lookTheta - hTheta < -Math.PI) lookTheta += Math.PI * 2;
+
+      // Ensure the popped-out word stays strictly inside the outward coil of the spiral
+      const outerCoilR = Rref * Math.exp(-spiralDecayK * (lookTheta - Math.PI * 2 - tipTheta));
+      const maxSafeCenterR = Math.max(hRadius + 24, outerCoilR - 28 - renderedHalfW);
+      const lookRadius = Math.min(Math.hypot(lx, ly), maxSafeCenterR);
+      const lookRot = offsetIdx * 0.035;
+
+      // When popping out on hover, originate directly from the hovered word at tiny scale
+      if (wasHidden) {
+        lookNode.renderSpiralTheta = highlightedNode.renderSpiralTheta ?? hTheta;
+        lookNode.renderSpiralR = (highlightedNode.renderSpiralR ?? hRadius) + 8;
+        lookNode.renderScale = 0.14;
+        lookNode.renderRotation = highlightedNode.renderRotation ?? 0;
+        lookNode.hasInitializedPos = true;
+      }
 
       setNodeSpiralTarget(lookNode, lookTheta, lookRadius, lookScale, lookRot);
     });
@@ -792,9 +964,14 @@ function recomputeSpiralTreeLayout() {
   lastTipRightWorldX = tipNode.targetX + 60;
   lastCol2LeftWorldX = highlightedNode ? highlightedNode.targetX + 60 : 120;
 
-  // Center the spiral vortex in the viewport
+  // Center the spiral vortex in the viewport, clamped so suggestions stay visible
+  const baseSpiralCameraX = viewportCssWidth * 0.47;
+  const maxSpiralPan = Math.max(0, viewportCssWidth - 28 - (baseSpiralCameraX + Rref * 1.25));
+  const minSpiralPan = Math.min(0, 28 - (baseSpiralCameraX - Rref * 1.25));
+  manualPanOffsetX = Math.max(minSpiralPan, Math.min(maxSpiralPan, manualPanOffsetX));
+
   camera.targetZoom = 1.0;
-  camera.targetX = viewportCssWidth * 0.47 + manualPanOffsetX;
+  camera.targetX = baseSpiralCameraX + manualPanOffsetX;
   camera.targetY = viewportCssHeight * 0.53;
 }
 
@@ -807,6 +984,7 @@ function selectNode(nodeId) {
   const pathNodes = getPathToNode(nodeId);
   sentencePath = pathNodes.map((n) => n.id);
   selectedNodeId = nodeId;
+  spiralBackwardSubStep = 0;
   manualPanOffsetX = 0;
 
   const tipNode = treeNodes.get(selectedNodeId);
@@ -850,6 +1028,7 @@ function advanceSentenceForward() {
  */
 function stepSentenceBackward() {
   if (sentencePath.length <= 1) {
+    spiralBackwardSubStep = 0;
     manualPanOffsetX = 0;
     recomputeTreeLayout();
     return;
@@ -858,6 +1037,7 @@ function stepSentenceBackward() {
   const poppedId = sentencePath.pop();
   selectedNodeId = sentencePath[sentencePath.length - 1];
   highlightedOptionId = poppedId; // Keep the word we just stepped back from highlighted!
+  spiralBackwardSubStep = 0;
   manualPanOffsetX = 0;
 
   recomputeTreeLayout();
@@ -1036,7 +1216,6 @@ canvasViewport.addEventListener('pointerdown', (e) => {
     e.target.closest('.stage-controls-bar') ||
     e.target.closest('.canvas-toolbar') ||
     e.target.closest('.stage-top-right-controls') ||
-    e.target.closest('.stage-Banner') ||
     e.target.closest('label') ||
     e.target.closest('input')
   ) {
@@ -1087,7 +1266,6 @@ canvasViewport.addEventListener('click', (e) => {
     e.target.closest('.stage-controls-bar') ||
     e.target.closest('.canvas-toolbar') ||
     e.target.closest('.stage-top-right-controls') ||
-    e.target.closest('.stage-Banner') ||
     e.target.closest('.fractal-node-el')
   ) {
     return;
@@ -1106,15 +1284,17 @@ window.addEventListener('pointerup', () => {
   }
 });
 
-// Vertical Scroll Wheel Navigation (1 step per deliberate scroll gesture, immune to trackpad inertia swooping):
+// Vertical Scroll Wheel Navigation:
 // - Scroll Down (deltaY > 0): Selects the highlighted next-word option to join the sentence so far
 // - Scroll Up (deltaY < 0): Steps backward along the sentence toward the initial sentence
+//   (In Spiral Mode, backward scrolling is unlocked and continuously unwinds the spiral all the way to root!)
 let wheelAccumulatorY = 0;
 let lastStepCommitMs = 0;
 let lastWheelEventMs = 0;
 let lastWheelAbsDelta = 0;
 let gestureLockedDirection = 0;
 const SCROLL_STEP_THRESHOLD = 42;
+const SPIRAL_BACK_STEP_THRESHOLD = 56;
 const SCROLL_STEP_COOLDOWN_MS = 460;
 const GESTURE_RESET_IDLE_MS = 140;
 
@@ -1139,6 +1319,61 @@ canvasViewport.addEventListener(
     lastWheelAbsDelta = absDelta;
 
     if (dir === 0) return;
+
+    // In Spiral Mode, scrolling backwards (deltaY < 0) smoothly unwinds
+    // the spiral up the word chain at a controlled, unhurried pace.
+    if (renderMode === 'spiral' && dir < 0) {
+      gestureLockedDirection = 0;
+      lastSpiralBackwardWheelMs = now;
+
+      if (sentencePath.length <= 1) {
+        wheelAccumulatorY = 0;
+        spiralBackwardSubStep = 0;
+        return;
+      }
+
+      const dampedDeltaY = Math.max(-42, e.deltaY * 0.72);
+      wheelAccumulatorY = Math.min(0, wheelAccumulatorY) + dampedDeltaY;
+      let didPopWord = false;
+      let stepsThisTick = 0;
+
+      while (
+        wheelAccumulatorY <= -SPIRAL_BACK_STEP_THRESHOLD &&
+        sentencePath.length > 1 &&
+        stepsThisTick < 2
+      ) {
+        wheelAccumulatorY += SPIRAL_BACK_STEP_THRESHOLD;
+        const poppedId = sentencePath.pop();
+        selectedNodeId = sentencePath[sentencePath.length - 1];
+        highlightedOptionId = poppedId;
+        didPopWord = true;
+        stepsThisTick++;
+      }
+
+      if (sentencePath.length <= 1) {
+        wheelAccumulatorY = 0;
+        spiralBackwardSubStep = 0;
+      } else {
+        spiralBackwardSubStep = Math.max(
+          0,
+          Math.min(0.98, -wheelAccumulatorY / SPIRAL_BACK_STEP_THRESHOLD)
+        );
+      }
+
+      manualPanOffsetX = 0;
+      recomputeTreeLayout();
+      if (didPopWord) {
+        lastStepCommitMs = now;
+        renderActiveChainRibbon(getPathToNode(selectedNodeId));
+        updateInspectorPanel(selectedNodeId);
+      }
+      return;
+    }
+
+    // Clear any partial backward spiral sub-step when scrolling forward
+    if (spiralBackwardSubStep > 0) {
+      spiralBackwardSubStep = 0;
+    }
 
     // A pause in wheel events or a direction reversal starts a fresh gesture
     if (idleGap > GESTURE_RESET_IDLE_MS || (gestureLockedDirection !== 0 && dir !== gestureLockedDirection)) {
@@ -1268,7 +1503,14 @@ function requestNodeFractalExpansion(nodeId) {
   const fullText = (targetNode.promptPrefix + targetNode.textSoFar).trim();
 
   if (!isModelReady || loadedModelId !== params.modelId) {
-    setModelStatusUI('loading', `Loading ${params.modelId.split('/').pop()}…`, 5);
+    const shortName = params.modelId.split('/').pop();
+    setModelStatusUI(
+      'loading',
+      isModelCachedLocally(params.modelId)
+        ? `Restoring ${shortName} from cache…`
+        : `Loading ${shortName}…`,
+      5
+    );
   }
 
   setGeneratingUI(
@@ -1311,9 +1553,12 @@ function startNewPromptFractal(promptText, overrideMode = null) {
   const mode = overrideMode || params.promptMode;
 
   if (!isModelReady || loadedModelId !== params.modelId) {
+    const shortName = params.modelId.split('/').pop();
     setModelStatusUI(
       'loading',
-      `Fetching ${params.modelId.split('/').pop()}…`,
+      isModelCachedLocally(params.modelId)
+        ? `Restoring ${shortName} from cache…`
+        : `Fetching ${shortName}…`,
       5
     );
   }
@@ -1341,6 +1586,31 @@ worker.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg || typeof msg.type !== 'string') return;
 
+  if (msg.type === 'cached_models_status') {
+    if (msg.cachedModels && typeof msg.cachedModels === 'object') {
+      cachedModelsMap = msg.cachedModels;
+    }
+    syncModelCacheDropdownAndControls();
+
+    // If the selected model is already cached in long-term storage on startup,
+    // automatically restore it into the worker so zero network fetch is needed.
+    if (!hasAutoRestoredCachedModel && !isModelReady && !isModelLoading && modelSelect) {
+      const selectedId = modelSelect.value;
+      if (isModelCachedLocally(selectedId)) {
+        hasAutoRestoredCachedModel = true;
+        if (btnLoadModel) {
+          btnLoadModel.textContent = '⏳ RESTORING…';
+        }
+        worker.postMessage({
+          type: 'load_model',
+          modelId: selectedId,
+          preferDevice: 'auto'
+        });
+      }
+    }
+    return;
+  }
+
   if (msg.type === 'model_status') {
     isModelLoading = true;
     setModelStatusUI('loading', msg.message || 'Loading model…');
@@ -1355,9 +1625,10 @@ worker.addEventListener('message', (event) => {
     const mbLoaded = (msg.loadedBytes / (1024 * 1024)).toFixed(1);
     const mbTotal = msg.totalBytes > 0 ? (msg.totalBytes / (1024 * 1024)).toFixed(1) : '?';
     const shortName = (msg.modelId || '').split('/').pop();
+    const actionPrefix = msg.fromCache ? `${shortName} (CACHE)` : shortName;
     setModelStatusUI(
       'loading',
-      `${shortName}: ${mbLoaded}/${mbTotal} MB (${msg.percent}%)`,
+      `${actionPrefix}: ${mbLoaded}/${mbTotal} MB (${msg.percent}%)`,
       msg.percent
     );
     return;
@@ -1367,18 +1638,27 @@ worker.addEventListener('message', (event) => {
     isModelLoading = false;
     isModelReady = true;
     loadedModelId = msg.modelId;
+    if (msg.modelId) {
+      cachedModelsMap[msg.modelId] = {
+        ...(cachedModelsMap[msg.modelId] || {}),
+        cached: true
+      };
+      try {
+        localStorage.setItem(LAST_MODEL_STORAGE_KEY, msg.modelId);
+      } catch (_e) {
+        // Ignore storage write errors
+      }
+    }
     const shortName = (msg.modelId || '').split('/').pop();
     setModelStatusUI(
       'ready',
-      `${shortName} Ready (${String(msg.device).toUpperCase()})`,
+      `${shortName} Ready (${String(msg.device).toUpperCase()} • CACHED)`,
       100
     );
     if (hardwareBadge) {
       hardwareBadge.textContent = `${String(msg.device).toUpperCase()} (${msg.dtype})`;
     }
-    if (btnLoadModel) {
-      btnLoadModel.textContent = '✓ READY';
-    }
+    syncModelCacheDropdownAndControls();
 
     if (typeof pendingActionAfterLoad === 'function') {
       const fn = pendingActionAfterLoad;
@@ -1393,9 +1673,7 @@ worker.addEventListener('message', (event) => {
     activeExpansionNodeId = null;
     setGeneratingUI(false, `Model error: ${msg.message}`);
     setModelStatusUI('error', `Error: ${msg.message}`, 0);
-    if (btnLoadModel) {
-      btnLoadModel.textContent = '⬇ FETCH MODEL';
-    }
+    syncModelCacheDropdownAndControls();
     return;
   }
 
@@ -1536,7 +1814,7 @@ worker.addEventListener('message', (event) => {
 
 btnLoadModel?.addEventListener('click', () => {
   const modelId = modelSelect.value;
-  btnLoadModel.textContent = '⏳ LOADING…';
+  btnLoadModel.textContent = isModelCachedLocally(modelId) ? '⏳ RESTORING…' : '⏳ LOADING…';
   worker.postMessage({
     type: 'load_model',
     modelId,
@@ -1545,11 +1823,7 @@ btnLoadModel?.addEventListener('click', () => {
 });
 
 modelSelect?.addEventListener('change', () => {
-  if (loadedModelId && modelSelect.value === loadedModelId) {
-    btnLoadModel.textContent = '✓ READY';
-  } else {
-    btnLoadModel.textContent = '⬇ FETCH MODEL';
-  }
+  syncModelCacheDropdownAndControls();
 });
 
 tempSlider?.addEventListener('input', () => {
@@ -1999,13 +2273,16 @@ function drawNomaiSpiralCalligraphy(ctx) {
     }
   });
 
-  // 5. Draw child spiral tendrils from highlightedNode into Column 2 lookahead options
+  // 5. Draw delicate pop-out whiskers from the right edge of highlightedNode to the 5 tiny lookahead options
   const highlightedNode = highlightedOptionId ? treeNodes.get(highlightedOptionId) : null;
   if (highlightedNode && typeof highlightedNode.renderSpiralTheta === 'number') {
     const hTheta = highlightedNode.renderSpiralTheta;
     const hR = highlightedNode.renderSpiralR;
     const hX = hR * Math.cos(hTheta);
     const hY = hR * Math.sin(hTheta);
+    const hWordW = getNodeWordWidth(highlightedNode, 96) * (highlightedNode.renderScale ?? 1.06);
+    const startX = hX + hWordW * 0.48;
+    const startY = hY;
 
     const col2Nodes = highlightedNode.childrenIds.map((id) => treeNodes.get(id)).filter(Boolean);
     col2Nodes.forEach((lookNode, idx) => {
@@ -2014,14 +2291,17 @@ function drawNomaiSpiralCalligraphy(ctx) {
       const lR = lookNode.renderSpiralR;
       const lX = lR * Math.cos(lTheta);
       const lY = lR * Math.sin(lTheta);
+      const lWordW = getNodeWordWidth(lookNode, 84) * (lookNode.renderScale ?? 0.34);
+      const endX = lX - lWordW * 0.52;
+      const endY = lY;
 
-      const ctrlTheta = hTheta + (lTheta - hTheta) * 0.5;
-      const ctrlR = (hR + lR) * 0.5;
+      const cpX = (startX + endX) * 0.5;
+      const cpY = startY + (endY - startY) * 0.25;
       ctx.beginPath();
-      ctx.moveTo(hX, hY);
-      ctx.quadraticCurveTo(ctrlR * Math.cos(ctrlTheta), ctrlR * Math.sin(ctrlTheta), lX, lY);
-      ctx.strokeStyle = idx === 0 ? 'rgba(124, 58, 237, 0.35)' : 'rgba(17, 17, 17, 0.11)';
-      ctx.lineWidth = idx === 0 ? 1.8 : 1.1;
+      ctx.moveTo(startX, startY);
+      ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+      ctx.strokeStyle = idx === 0 ? 'rgba(255, 84, 54, 0.38)' : 'rgba(17, 17, 17, 0.14)';
+      ctx.lineWidth = idx === 0 ? 1.35 : 0.95;
       ctx.stroke();
     });
   }
@@ -2048,7 +2328,22 @@ function drawNomaiSpiralCalligraphy(ctx) {
   ctx.restore();
 }
 
-function drawFractalCanvasScene(_nowMs) {
+function drawFractalCanvasScene(nowMs) {
+  const now = nowMs || performance.now();
+
+  // If the user paused mid-way while scrolling backward in spiral mode, smoothly settle sub-step
+  if (renderMode === 'spiral' && spiralBackwardSubStep > 0 && now - lastSpiralBackwardWheelMs > 150) {
+    spiralBackwardSubStep *= 0.85;
+    if (spiralBackwardSubStep < 0.01) {
+      spiralBackwardSubStep = 0;
+      wheelAccumulatorY = 0;
+    }
+    recomputeSpiralTreeLayout();
+  }
+
+  const isFastSpiralUnwind = renderMode === 'spiral' && now - lastSpiralBackwardWheelMs < 180;
+  const spiralLerp = isFastSpiralUnwind ? 0.21 : 0.18;
+
   // Smoothly interpolate camera pan & zoom
   camera.x += (camera.targetX - camera.x) * 0.18;
   camera.y += (camera.targetY - camera.y) * 0.18;
@@ -2057,10 +2352,10 @@ function drawFractalCanvasScene(_nowMs) {
   // Smoothly interpolate prefix words in spiral mode
   if (renderMode === 'spiral') {
     spiralPromptPrefixWords.forEach((token) => {
-      token.renderTheta += (token.targetTheta - token.renderTheta) * 0.18;
-      token.renderR += (token.targetR - token.renderR) * 0.18;
-      token.renderScale += (token.targetScale - token.renderScale) * 0.18;
-      token.renderRotation += (token.targetRotation - token.renderRotation) * 0.18;
+      token.renderTheta += (token.targetTheta - token.renderTheta) * spiralLerp;
+      token.renderR += (token.targetR - token.renderR) * spiralLerp;
+      token.renderScale += (token.targetScale - token.renderScale) * spiralLerp;
+      token.renderRotation += (token.targetRotation - token.renderRotation) * spiralLerp;
     });
   }
 
@@ -2068,10 +2363,10 @@ function drawFractalCanvasScene(_nowMs) {
   treeNodes.forEach((node) => {
     if (node.visualRole === 'hidden') return;
     if (node.usePolarSpiral) {
-      node.renderSpiralTheta += (node.targetSpiralTheta - node.renderSpiralTheta) * 0.18;
-      node.renderSpiralR += (node.targetSpiralR - node.renderSpiralR) * 0.18;
-      node.renderScale += (node.targetScale - (node.renderScale ?? 1.0)) * 0.18;
-      node.renderRotation += (node.targetRotation - (node.renderRotation ?? 0)) * 0.18;
+      node.renderSpiralTheta += (node.targetSpiralTheta - node.renderSpiralTheta) * spiralLerp;
+      node.renderSpiralR += (node.targetSpiralR - node.renderSpiralR) * spiralLerp;
+      node.renderScale += (node.targetScale - (node.renderScale ?? 1.0)) * spiralLerp;
+      node.renderRotation += (node.targetRotation - (node.renderRotation ?? 0)) * spiralLerp;
 
       const w = getNodeWordWidth(node, 96);
       const cx = node.renderSpiralR * Math.cos(node.renderSpiralTheta);
@@ -2185,25 +2480,40 @@ function drawFractalCanvasScene(_nowMs) {
           : 'Generating words…';
       }
 
-      const spinnerWorldX =
-        renderMode === 'spiral'
-          ? isCol1Buffering
-            ? (tipNode?.renderX || 0) + 90
-            : (highlightedNode?.renderX || 0) + 70
-          : isCol1Buffering
-            ? lastTipRightWorldX + 52
-            : lastCol2LeftWorldX + 12;
-      const spinnerWorldY =
-        renderMode === 'spiral'
-          ? isCol1Buffering
-            ? (tipNode?.renderY || 0)
-            : (highlightedNode?.renderY || 0)
-          : isCol1Buffering
-            ? 0
-            : highlightedNode?.renderY || 0;
+      let spinnerWorldX;
+      let spinnerWorldY;
+      let spinnerScale = camera.zoom;
+
+      if (renderMode === 'spiral') {
+        const Rref = currentSpiralRefRadius || 210;
+        if (isCol1Buffering) {
+          // Place where the 5 immediate spiral choice words appear
+          const tTheta = (tipNode?.renderSpiralTheta ?? -0.60 * Math.PI) + 0.96;
+          const tRadius = Rref * 0.94;
+          spinnerWorldX = tRadius * Math.cos(tTheta) - 24;
+          spinnerWorldY = tRadius * Math.sin(tTheta);
+          spinnerScale = camera.zoom * 0.78;
+        } else {
+          // Place in the compact pop-out pocket where the 5 tiny lookahead words appear
+          const hTheta = highlightedNode?.renderSpiralTheta ?? -0.60 * Math.PI + 0.56;
+          const hRadius = highlightedNode?.renderSpiralR ?? Rref;
+          const hScale = highlightedNode?.renderScale ?? 1.06;
+          const hX = hRadius * Math.cos(hTheta);
+          const hY = hRadius * Math.sin(hTheta);
+          const hRenderedW = getNodeWordWidth(highlightedNode, 96) * hScale;
+          spinnerWorldX = hX + hRenderedW * 0.5 + 18;
+          spinnerWorldY = hY;
+          spinnerScale = camera.zoom * 0.62;
+        }
+      } else {
+        spinnerWorldX = isCol1Buffering ? lastTipRightWorldX + 52 : lastCol2LeftWorldX + 12;
+        spinnerWorldY = isCol1Buffering ? 0 : highlightedNode?.renderY || 0;
+      }
+
+      const halfH = renderMode === 'spiral' ? 10 * spinnerScale : 19;
       const screenX = camera.x + spinnerWorldX * camera.zoom;
-      const screenY = camera.y + spinnerWorldY * camera.zoom - 19;
-      wordBufferSpinnerWrap.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;
+      const screenY = camera.y + spinnerWorldY * camera.zoom - halfH;
+      wordBufferSpinnerWrap.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${spinnerScale.toFixed(3)})`;
     } else {
       wordBufferSpinnerWrap.hidden = true;
     }

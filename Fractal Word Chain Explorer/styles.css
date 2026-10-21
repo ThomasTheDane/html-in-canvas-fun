@@ -889,15 +889,7 @@ body {
   font-weight: 900;
 }
 
-/* Floating Stage Status & Zoom Controls */
-.stage-Banner {
-  position: absolute;
-  top: 0.9rem;
-  left: 0.9rem;
-  z-index: 10;
-  pointer-events: none;
-}
-
+/* Floating Stage Mode & Step Controls */
 .stage-top-right-controls {
   position: absolute;
   top: 0.9rem;
@@ -917,33 +909,6 @@ body {
   background: var(--punch-coral);
   color: #ffffff;
   text-shadow: 1px 1px 0px var(--ink);
-}
-
-.brutal-status-chip {
-  pointer-events: auto;
-  background: var(--acid-yellow);
-  border: var(--border-thick);
-  box-shadow: var(--shadow-md);
-  padding: 0.4rem 0.8rem;
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.telemetry-dot {
-  width: 12px;
-  height: 12px;
-  background: var(--mint-green);
-  border: 2px solid var(--ink);
-}
-
-.telemetry-dot.is-busy {
-  background: var(--punch-coral);
-  animation: brutalBlink 0.45s infinite alternate;
 }
 
 .canvas-toolbar {
@@ -1026,6 +991,20 @@ body {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: rgba(17, 17, 17, 0.52);
+}
+
+#canvas-viewport.is-spiral-mode .word-buffer-spinner-wrap {
+  gap: 0.42rem;
+}
+
+#canvas-viewport.is-spiral-mode .word-buffer-spinner-label {
+  font-size: 0.82rem;
+  color: rgba(17, 17, 17, 0.48);
+}
+
+#canvas-viewport.is-spiral-mode progress.loading-spinner:indeterminate {
+  --size: 20px;
+  --thickness: 2.5px;
 }
 
 /* Hide native progress bars */

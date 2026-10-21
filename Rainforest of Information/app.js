@@ -23,8 +23,12 @@ const vineNodeButtons = Array.from(document.querySelectorAll('.vine-node-btn'));
 
 const supportsNativeHIC =
   ('content' in HTMLCanvasElement.prototype ||
-    'layoutSubtree' in HTMLCanvasElement.prototype) &&
-  typeof canvas.captureElementImage === 'function';
+    'layoutSubtree' in HTMLCanvasElement.prototype ||
+    typeof canvas.updateElementGeometry === 'function') &&
+  (typeof canvas.getElementImageDefaultSize === 'function' ||
+    typeof canvas.captureElementImage === 'function' ||
+    typeof (canvas.getContext('webgl2') || canvas.getContext('webgl'))?.texElementSubImage2D ===
+      'function');
 
 if (!supportsNativeHIC) {
   // Place the DOM elements in an invisible hit-test & accessibility overlay
@@ -41,24 +45,48 @@ if (!supportsNativeHIC) {
     hicPipelineBadge.textContent = '3D Sculpted Leaf Model + Live HTML-in-Canvas Texture Active';
   }
 } else if (hicPipelineBadge) {
-  hicPipelineBadge.textContent = 'Native HTML-in-Canvas (texElementSubImage2D) + 3D Leaf Model Active';
+  hicPipelineBadge.textContent =
+    'Native HTML-in-Canvas (texElementSubImage2D + updateElementGeometry) Active';
 }
 
 // HTML-in-Canvas Spec Helpers (`apply-webgl-shaders` & `interactive-content-in-3d-scenes`)
 function getElementImageSize(targetCanvas, element) {
-  let elementImage;
-  try {
-    elementImage = targetCanvas.captureElementImage(element);
-  } catch (_err) {
-    if (typeof targetCanvas.requestPaint === 'function') {
-      targetCanvas.requestPaint();
+  if (typeof targetCanvas.getElementImageDefaultSize === 'function') {
+    try {
+      const size = targetCanvas.getElementImageDefaultSize(element);
+      if (size && size.width > 0 && size.height > 0) {
+        return {
+          width: Math.ceil(size.width),
+          height: Math.ceil(size.height)
+        };
+      }
+    } catch (_err) {
+      // Fall through to captureElementImage or CSS box fallback
     }
-    return null;
   }
-  const width = Math.ceil(elementImage.width);
-  const height = Math.ceil(elementImage.height);
-  elementImage.close();
-  return width > 0 && height > 0 ? { width, height } : null;
+
+  if (typeof targetCanvas.captureElementImage === 'function') {
+    let elementImage;
+    try {
+      elementImage = targetCanvas.captureElementImage(element);
+    } catch (_err) {
+      if (typeof targetCanvas.requestPaint === 'function') {
+        targetCanvas.requestPaint();
+      }
+      return null;
+    }
+    const width = Math.ceil(elementImage.width);
+    const height = Math.ceil(elementImage.height);
+    if (typeof elementImage.close === 'function') {
+      elementImage.close();
+    }
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.ceil((element.offsetWidth || 650) * dpr);
+  const h = Math.ceil((element.offsetHeight || 400) * dpr);
+  return w > 0 && h > 0 ? { width: w, height: h } : null;
 }
 
 function allocateElementTexture(glContext, texture, state, width, height) {
@@ -95,25 +123,23 @@ function uploadElementWebGL(glContext, targetCanvas, texture, element, state) {
   return true;
 }
 
-function computeCanvasTransform(targetCanvas, element, mvp) {
-  const width = Math.max(1, element.offsetWidth || 680);
-  const height = Math.max(1, element.offsetHeight || 420);
+/**
+ * Constructs a clean 2D affine `DOMMatrix` (`is2D === true`, `m44 === 1`, `m33 === 1`)
+ * that maps the drawable element's border-box `(0, 0) -> (offsetWidth, offsetHeight)`
+ * directly onto its perspective-projected 3D leaf quad on the canvas in CSS pixels.
+ */
+function computeCanvasTransform(element, tlScreen, trScreen, blScreen) {
+  const width = Math.max(1, element.offsetWidth || 650);
+  const height = Math.max(1, element.offsetHeight || 400);
 
-  const toGLModel = new DOMMatrix()
-    .scale(1 / width, -1 / height, 1 / height)
-    .translate(-width / 2, -height / 2);
-
-  const mvpDOM = new DOMMatrix(Array.from(mvp));
-
-  const clipToCanvasViewport = new DOMMatrix()
-    .translate(targetCanvas.clientWidth / 2, targetCanvas.clientHeight / 2)
-    .scale(
-      targetCanvas.clientWidth / 2,
-      -targetCanvas.clientHeight / 2,
-      targetCanvas.clientHeight / 2
-    );
-
-  return clipToCanvasViewport.multiply(mvpDOM).multiply(toGLModel);
+  const canvasTransform = new DOMMatrix();
+  canvasTransform.a = (trScreen.x - tlScreen.x) / width;
+  canvasTransform.b = (trScreen.y - tlScreen.y) / width;
+  canvasTransform.c = (blScreen.x - tlScreen.x) / height;
+  canvasTransform.d = (blScreen.y - tlScreen.y) / height;
+  canvasTransform.e = tlScreen.x;
+  canvasTransform.f = tlScreen.y;
+  return canvasTransform;
 }
 
 // ============================================================================
@@ -128,36 +154,36 @@ const STAGE_METADATA = [
     step: 0,
     side: 0,
     elevation: '65m (Emergent Crown)',
-    title: 'Crown Canopy: The Rainforest of Information',
-    guide: 'Scroll down to descend the twin DNA liana vines & watch each 3D leaf unroll'
+    title: 'Crown Canopy: Golden Poison Frog',
+    guide: 'Scroll down the twin DNA liana vines to unfurl each leaf & highlight any animal fact'
   },
   {
     step: 1,
     side: -1,
     elevation: '54m (Upper Canopy)',
-    title: 'Leaf #1 (Left Vine): The Three-Toed Sloth’s Weekly Poo',
-    guide: 'Unfurling 3D Leaf from Left DNA Vine • Click the Poo Dance button on the leaf!'
+    title: 'Leaf #1 (Left Vine): Three-Toed Sloth',
+    guide: 'Unfurling 3D Leaf from Left DNA Vine • Drag across the leaf to highlight the sloth fact'
   },
   {
     step: 2,
     side: 1,
     elevation: '44m (Middle Canopy)',
-    title: 'Leaf #2 (Right Vine): The 160 MPH Exploding Grenade Tree',
-    guide: 'Unfurling 3D Leaf from Right DNA Vine • Click Detonate Seed Pod on the leaf!'
+    title: 'Leaf #2 (Right Vine): Emerald Glass Frog',
+    guide: 'Unfurling 3D Leaf from Right DNA Vine • Drag across the leaf to highlight the glass frog fact'
   },
   {
     step: 3,
     side: -1,
     elevation: '34m (Lower Canopy)',
-    title: 'Leaf #3 (Left Vine): 116dB Screaming Piha & Decoy Spider',
-    guide: 'Unfurling 3D Leaf from Left DNA Vine • Puppeteer the fake spider on the leaf!'
+    title: 'Leaf #3 (Left Vine): Puppeteer Decoy Spider',
+    guide: 'Unfurling 3D Leaf from Left DNA Vine • Drag across the leaf to highlight the decoy spider fact'
   },
   {
     step: 4,
     side: 1,
     elevation: '24m (Understory Clearing)',
-    title: 'Leaf #4 (Right Vine): Subscribe to The Canopy Dispatch',
-    guide: 'Click any input field on the 3D leaf to type your name & email directly onto the leaf!'
+    title: 'Leaf #4 (Right Vine): Write Your Name on the Leaf',
+    guide: 'Type your name on the leaf and press Submit to watch light draw it stroke-for-stroke!'
   },
   {
     step: 5,
@@ -1473,6 +1499,16 @@ let focusedInputId = null; // 'explorer-name' | 'explorer-email' | null
 let newsletterSubmittedMsg = '';
 let newsletterErrorMsg = '';
 
+const nameEtchState = {
+  text: '',
+  active: false,
+  completed: false,
+  startTimeMs: 0,
+  msPerChar: 450,
+  letters: [],
+  sparks: []
+};
+
 const QUIZ_QUESTIONS = [
   {
     prompt: 'Q1: Why do Amazonian macaws flock to riverbanks to eat clay?',
@@ -1634,20 +1670,20 @@ function renderLiveDOMToLeafCanvas(node, nowMs, hoveredId = null) {
   let serialText = '';
 
   if (step === 0) {
-    badgeText = '🌴 EMERGENT CANOPY CROWN • 65 METERS ABOVE THE FOREST FLOOR';
-    serialText = 'CANOPY // 00';
+    badgeText = '🌴 THE RAINFOREST OF INFORMATION • ANIMAL FACT #01';
+    serialText = 'PHYLLOBATES TERRIBILIS';
   } else if (step === 1) {
-    badgeText = '🌿 LEFT DNA VINE SPROUT • FUN & 100% TRUE FACT #01';
-    serialText = 'SPECIMEN // BRADYPUS';
+    badgeText = '🌿 LEFT DNA VINE • ANIMAL FACT #02';
+    serialText = 'BRADYPUS TRIDACTYLUS';
   } else if (step === 2) {
-    badgeText = '💥 RIGHT DNA VINE SPROUT • FUN & 100% TRUE FACT #02';
-    serialText = 'SPECIMEN // HURA CREPITANS';
+    badgeText = '🐸 RIGHT DNA VINE • ANIMAL FACT #03';
+    serialText = 'HYALINOBATRACHIUM';
   } else if (step === 3) {
-    badgeText = '🕷️ LEFT DNA VINE SPROUT • FUN & 100% TRUE FACT #03';
-    serialText = 'SPECIMEN // CYCLOSA & PIHA';
+    badgeText = '🕷️ LEFT DNA VINE • ANIMAL FACT #04';
+    serialText = 'CYCLOSA MULMEINENSIS';
   } else if (step === 4) {
-    badgeText = '✉️ RIGHT DNA VINE SPROUT • INTERACTIVE CANOPY NEWSLETTER FORM';
-    serialText = 'DISPATCH // SUBSCRIBE';
+    badgeText = '✨ RIGHT DNA VINE • LUMINOUS LEAF INSCRIPTION';
+    serialText = 'WRITE YOUR NAME';
   } else if (step === 5) {
     const score = quizUserAnswers.reduce(
       (acc, ans, idx) => acc + (ans === QUIZ_QUESTIONS[idx].correctIndex ? 1 : 0),
@@ -1683,505 +1719,142 @@ function renderLiveDOMToLeafCanvas(node, nowMs, hoveredId = null) {
   // RENDER STAGE-SPECIFIC LIVE DOM CONTENT ONTO THE 3D LEAF TEXTURE
   // ==========================================================================
 
-  if (step === 0) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 54px Georgia, serif';
-    ctx.fillText('The Rainforest of Information', padX, 172);
-
-    ctx.fillStyle = '#e2fced';
-    ctx.font = '26px Inter, sans-serif';
-    let curY = wrapCanvasText(
-      ctx,
-      'Flanking this clearing are two ancient, living DNA-helix liana vines twisting down through the sunlit mist. As you scroll deeper into the understory, 3D tropical leaves sprout alternately from the left and right vines—physically unrolling their coiled blades and HTML-in-Canvas textures into the center of your view.',
-      padX,
-      228,
-      contentW,
-      38
-    );
-
-    // 3 Feature Boxes
-    const features = [
-      ['🦥 Absurdly True Biology', 'Weekly sloth bathroom drama, 160 MPH grenade trees & 116dB birds.'],
-      ['🧪 Live 3D Leaf Surface', 'Type into forms & click quiz choices directly on the 3D leaf blade.'],
-      ['🔥 Fire & Braided Finale', 'Ignite a leaf to ash, then watch the twin DNA vines weave together.']
+  if (step === 0 || step === 1 || step === 2 || step === 3) {
+    const simpleFacts = [
+      {
+        title: 'Golden Poison Frog',
+        fact: 'A single two-inch golden poison dart frog carries enough natural neurotoxin on its skin to take down ten grown humans, yet becomes completely harmless if raised away from its wild rainforest ant diet.'
+      },
+      {
+        title: 'Three-Toed Sloth',
+        fact: 'Three-toed sloths climb down from the canopy just once a week to poop, losing up to one-third of their entire body weight in a single sitting so resident fur moths can lay eggs in the dung.'
+      },
+      {
+        title: 'Emerald Glass Frog',
+        fact: 'The rainforest glass frog has completely translucent skin on its belly, allowing you to see its tiny heart beating and meals digesting in real time while it sleeps under canopy leaves.'
+      },
+      {
+        title: 'Puppeteer Decoy Spider',
+        fact: 'A tiny five-millimeter Peruvian orb-weaver spider sculpts a giant eight-legged decoy spider out of moss and insect husks in its web and shakes the silk strings like a puppet to scare off predators.'
+      }
     ];
-    const boxW = (contentW - 36) / 3;
-    features.forEach(([fTitle, fSub], idx) => {
-      const bx = padX + idx * (boxW + 18);
-      const by = curY + 22;
-      ctx.fillStyle = 'rgba(4, 22, 11, 0.72)';
-      ctx.strokeStyle = 'rgba(120, 245, 160, 0.45)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(bx, by, boxW, 148, 20);
-      ctx.fill();
-      ctx.stroke();
+    const item = simpleFacts[step];
+    ctx.fillStyle = '#fffef4';
+    ctx.font = 'bold 58px Georgia, serif';
+    ctx.fillText(item.title, padX, 290);
 
-      ctx.fillStyle = '#f7d574';
-      ctx.font = 'bold 23px Inter, sans-serif';
-      ctx.fillText(fTitle, bx + 20, by + 42);
-      ctx.fillStyle = '#d4f5de';
-      ctx.font = '21px Inter, sans-serif';
-      wrapCanvasText(ctx, fSub, bx + 20, by + 80, boxW - 40, 30);
-    });
-
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-start-descent',
-      '🌱 Sprout First Leaf (Descend Vines)',
-      padX,
-      h - 135,
-      460,
-      64,
-      'emerald',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-pulse-spores',
-      '✨ Release Bioluminescent Spores',
-      padX + 485,
-      h - 135,
-      430,
-      64,
-      'gold',
-      hoveredId
-    );
-  } else if (step === 1) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px Georgia, serif';
-    ctx.fillText('The Three-Toed Sloth’s High-Stakes Weekly Poo', padX, 166);
-
-    // Pullquote box
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.68)';
-    ctx.fillRect(padX, 192, contentW, 92);
-    ctx.fillStyle = '#f7d574';
-    ctx.fillRect(padX, 192, 7, 92);
-    ctx.fillStyle = '#fff4c4';
-    ctx.font = 'italic 24px Georgia, serif';
-    wrapCanvasText(
-      ctx,
-      '“Imagine holding it in for seven days, climbing down 100 feet in slow-motion, doing a literal ‘poo dance,’ and losing ONE-THIRD of your entire body weight in a single sitting.”',
-      padX + 24,
-      230,
-      contentW - 44,
-      34
-    );
-
-    ctx.fillStyle = '#effcf3';
-    ctx.font = '24px Inter, sans-serif';
-    let curY = wrapCanvasText(
-      ctx,
-      'Three-toed sloths digest tough cecropia leaves so slowly that a single meal takes up to a full month to process. Over 50% of all sloth deaths happen during their once-a-week bathroom trip down to the forest floor because jaguars know the schedule!',
-      padX,
-      328,
-      contentW,
-      35
-    );
-    curY = wrapCanvasText(
-      ctx,
-      'Why risk it? Because colonies of Sloth Moths live exclusively in their fur, waiting to lay eggs in the fresh dung—and those moths fertilize green hydroponic camouflage algae right on the sloth’s coat!',
-      padX,
-      curY + 14,
-      contentW,
-      35
-    );
-
-    // Interactive Sloth Box
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.78)';
-    ctx.strokeStyle = '#f7d574';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(padX, 585, contentW, 138, 22);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#f7d574';
-    ctx.font = 'bold 24px Inter, sans-serif';
-    ctx.fillText('🦥 Interactive Sloth Bathroom Scale & Moth Counter', padX + 26, 632);
-
-    ctx.fillStyle = '#a8ffca';
-    ctx.font = '22px ui-monospace, monospace';
-    const slothStatus =
-      slothPooCount === 0
-        ? 'State: Belly 100% Full (7 days of fermented leaves) • Fur Moths: 124'
-        : `🕺 Poo Dance #${slothPooCount} Complete! Lost 33% body weight • Happy Moths: ${124 + slothPooCount * 38}`;
-    ctx.fillText(slothStatus, padX + 26, 676);
-
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-sloth-dance',
-      '🕺 Do the Weekly “Poo Dance” (-33% Weight!)',
-      padX,
-      h - 130,
-      540,
-      62,
-      'emerald',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'jump-2',
-      'Next Leaf (Right Vine) ▼',
-      w - padX - 320,
-      h - 130,
-      320,
-      62,
-      'gold',
-      hoveredId
-    );
-  } else if (step === 2) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 42px Georgia, serif';
-    ctx.fillText('The “Monkey-No-Climb” 160 MPH Frag-Grenade Tree', padX, 166);
-
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.68)';
-    ctx.fillRect(padX, 192, contentW, 92);
-    ctx.fillStyle = '#f7d574';
-    ctx.fillRect(padX, 192, 7, 92);
-    ctx.fillStyle = '#fff4c4';
-    ctx.font = 'italic 24px Georgia, serif';
-    wrapCanvasText(
-      ctx,
-      '“Most trees politely bribe toucans with sweet fruit to spread their seeds. The Sandbox Tree instead wears medieval spikes and pelts the jungle with supersonic shrapnel.”',
-      padX + 24,
-      230,
-      contentW - 44,
-      34
-    );
-
-    ctx.fillStyle = '#effcf3';
-    ctx.font = '24px Inter, sans-serif';
-    let curY = wrapCanvasText(
-      ctx,
-      'Meet Hura crepitans, known across the Amazon as the “Monkey-No-Climb” or Dynamite Tree. Its trunk is armored from root to crown in wicked three-inch conical spikes, and its caustic sap is so toxic it was used for poison darts.',
-      padX,
-      328,
-      contentW,
-      35
-    );
-    curY = wrapCanvasText(
-      ctx,
-      'When its pumpkin-shaped seed pods ripen, colossal elastic tension builds inside until—BANG!—they detonate like a gunshot, flinging shrapnel seeds at 160 MPH (70 m/s) over 140 feet through the rainforest!',
-      padX,
-      curY + 14,
-      contentW,
-      35
-    );
-
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.78)';
-    ctx.strokeStyle = '#f7d574';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(padX, 585, contentW, 138, 22);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#f7d574';
-    ctx.font = 'bold 24px Inter, sans-serif';
-    ctx.fillText('💣 Hura Crepitans Ballistic Seed Pod Simulator', padX + 26, 632);
-
-    ctx.fillStyle = '#a8ffca';
-    ctx.font = '22px ui-monospace, monospace';
-    const podStatus =
-      podDetonations === 0
-        ? 'Pod Tension: 88 PSI (Armed) • Last Seed Shrapnel Distance: 0 ft'
-        : `💥 BOOM! Detonation #${podDetonations} at 160 MPH • Shrapnel Flung: ${118 + ((podDetonations * 19) % 45)} ft!`;
-    ctx.fillText(podStatus, padX + 26, 676);
-
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-detonate-pod',
-      '💥 Detonate Seed Pod (160 MPH Launch!)',
-      padX,
-      h - 130,
-      520,
-      62,
-      'gold',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'jump-3',
-      'Next Leaf (Left Vine) ▼',
-      w - padX - 320,
-      h - 130,
-      320,
-      62,
-      'emerald',
-      hoveredId
-    );
-  } else if (step === 3) {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 41px Georgia, serif';
-    ctx.fillText('116dB Drama Bird & The Spider With a Fake Twin', padX, 166);
-
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.68)';
-    ctx.fillRect(padX, 192, contentW, 92);
-    ctx.fillStyle = '#f7d574';
-    ctx.fillRect(padX, 192, 7, 92);
-    ctx.fillStyle = '#fff4c4';
-    ctx.font = 'italic 24px Georgia, serif';
-    wrapCanvasText(
-      ctx,
-      '“One plain grey bird screams louder than a chainsaw just to get a date, while a 5mm spider sculpts a giant fake boss-spider out of dead bugs to prank wasps.”',
-      padX + 24,
-      230,
-      contentW - 44,
-      34
-    );
-
-    ctx.fillStyle = '#effcf3';
-    ctx.font = '24px Inter, sans-serif';
-    let curY = wrapCanvasText(
-      ctx,
-      'That iconic Hollywood jungle whistle (“wee-ti-ti-YOOO!”) is the Screaming Piha—a humble grey bird whose syrinx blasts mating calls at 116 decibels (louder than a chainsaw or rock concert) just to show off its beige feathers.',
-      padX,
-      328,
-      contentW,
-      35
-    );
-    curY = wrapCanvasText(
-      ctx,
-      'Meanwhile in Peru, a tiny 5mm orb-weaver (Cyclosa sp.) sculpts a giant 25mm anatomical decoy spider—complete with 8 legs—out of bug husks and moss in its web, then shakes the threads like a marionette so predators attack the dummy!',
-      padX,
-      curY + 14,
-      contentW,
-      35
-    );
-
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.78)';
-    ctx.strokeStyle = '#f7d574';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(padX, 585, contentW, 138, 22);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#f7d574';
-    ctx.font = 'bold 24px Inter, sans-serif';
-    ctx.fillText('🎭 Jungle Drama & Decoy Puppeteer Console', padX + 26, 632);
-
-    ctx.fillStyle = '#a8ffca';
-    ctx.font = '22px ui-monospace, monospace';
-    const decoyText = pihaCallTriggered
-      ? '📢 WEE-TI-TI-YOOO! 116.4 dB Piha Call Emitted (Louder than a Chainsaw!)'
-      : `🕸️ Giant 8-Legged Trash-Spider Decoy Active • Wasps Bamboozled Today: ${decoyShakes}`;
-    ctx.fillText(decoyText, padX + 26, 676);
-
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-shake-decoy',
-      '🕸️ Puppeteer Giant Decoy Spider',
-      padX,
-      h - 130,
-      430,
-      62,
-      'emerald',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'btn-piha-call',
-      '📢 Blast 116dB Piha Call',
-      padX + 450,
-      h - 130,
-      350,
-      62,
-      'gold',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'jump-4',
-      'Newsletter Leaf ▼',
-      w - padX - 280,
-      h - 130,
-      280,
-      62,
-      'emerald',
-      hoveredId
-    );
+    ctx.fillStyle = '#f2fff5';
+    ctx.font = '36px Inter, sans-serif';
+    wrapCanvasText(ctx, item.fact, padX, 378, contentW, 56);
   } else if (step === 4) {
-    // LEAF #4: INTERACTIVE NEWSLETTER SIGN-UP FORM ON THE 3D LEAF
+    // LEAF #4: WRITE YOUR NAME ON THE LEAF (STROKE-BY-STROKE LIGHT ETCHING)
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px Georgia, serif';
-    ctx.fillText('Sign Up for “The Canopy Dispatch” Newsletter', padX, 164);
+    ctx.font = 'bold 46px Georgia, serif';
+    ctx.fillText('Write Your Name on the Leaf', padX, 170);
 
-    ctx.fillStyle = '#dff8e6';
+    ctx.fillStyle = '#d9fce3';
     ctx.font = '23px Inter, sans-serif';
     ctx.fillText(
-      'Click either field below on this 3D leaf to type your name & email, choose your courier animal, and subscribe:',
+      'Type your name below and press Submit to etch it stroke-by-stroke in living light:',
       padX,
-      208
+      216
     );
 
-    const colW = (contentW - 36) / 2;
     const caretBlink = Math.floor(nowMs / 500) % 2 === 0 ? '|' : '';
-
-    // Field 1: Explorer Full Name
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 23px Inter, sans-serif';
-    ctx.fillText('Explorer Full Name *', padX, 262);
-    ctx.fillStyle = '#b4e6c3';
-    ctx.font = '19px Inter, sans-serif';
-    ctx.fillText('Format: 2–80 characters', padX, 290);
-
     const nameBoxX = padX;
-    const nameBoxY = 304;
+    const nameBoxY = 242;
+    const btnW = 300;
+    const inputW = contentW - btnW - 24;
     const isNameFocused = focusedInputId === 'explorer-name';
-    ctx.fillStyle = 'rgba(2, 14, 8, 0.88)';
-    ctx.strokeStyle = isNameFocused
-      ? '#f7d574'
-      : explorerNameVal.trim().length >= 2
-        ? '#58eb89'
-        : 'rgba(130, 245, 165, 0.55)';
+
+    ctx.fillStyle = 'rgba(3, 24, 12, 0.78)';
+    ctx.strokeStyle = isNameFocused ? '#f7d574' : 'rgba(130, 245, 165, 0.55)';
     ctx.lineWidth = isNameFocused ? 4 : 2.5;
     ctx.beginPath();
-    ctx.roundRect(nameBoxX, nameBoxY, colW, 68, 16);
+    ctx.roundRect(nameBoxX, nameBoxY, inputW, 68, 16);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = explorerNameVal ? '#ffffff' : 'rgba(180, 220, 192, 0.5)';
-    ctx.font = '25px Inter, sans-serif';
+    ctx.fillStyle = explorerNameVal ? '#ffffff' : 'rgba(180, 220, 192, 0.55)';
+    ctx.font = '26px Inter, sans-serif';
     const dispName = explorerNameVal
       ? explorerNameVal + (isNameFocused ? caretBlink : '')
       : isNameFocused
         ? caretBlink
-        : 'Dr. Ines Aranha (Click to type)';
-    ctx.fillText(dispName, nameBoxX + 20, nameBoxY + 42);
-    hitRegions.push({ id: 'input-explorer-name', x: nameBoxX, y: nameBoxY, w: colW, h: 68 });
-
-    // Field 2: Canopy Comms Email
-    const emailBoxX = padX + colW + 36;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 23px Inter, sans-serif';
-    ctx.fillText('Canopy Comms Email *', emailBoxX, 262);
-    ctx.fillStyle = '#b4e6c3';
-    ctx.font = '19px Inter, sans-serif';
-    ctx.fillText('Format: explorer@rainforest.org', emailBoxX, 290);
-
-    const isEmailFocused = focusedInputId === 'explorer-email';
-    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(explorerEmailVal.trim());
-    ctx.fillStyle = 'rgba(2, 14, 8, 0.88)';
-    ctx.strokeStyle = isEmailFocused
-      ? '#f7d574'
-      : isEmailValid
-        ? '#58eb89'
-        : 'rgba(130, 245, 165, 0.55)';
-    ctx.lineWidth = isEmailFocused ? 4 : 2.5;
-    ctx.beginPath();
-    ctx.roundRect(emailBoxX, nameBoxY, colW, 68, 16);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = explorerEmailVal ? '#ffffff' : 'rgba(180, 220, 192, 0.5)';
-    ctx.font = '25px Inter, sans-serif';
-    const dispEmail = explorerEmailVal
-      ? explorerEmailVal + (isEmailFocused ? caretBlink : '')
-      : isEmailFocused
-        ? caretBlink
-        : 'ines@canopy.org (Click to type)';
-    ctx.fillText(dispEmail, emailBoxX + 20, nameBoxY + 42);
-    hitRegions.push({ id: 'input-explorer-email', x: emailBoxX, y: nameBoxY, w: colW, h: 68 });
-
-    // Courier Radio Fieldset
-    ctx.fillStyle = 'rgba(3, 18, 9, 0.72)';
-    ctx.strokeStyle = 'rgba(120, 245, 160, 0.45)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(padX, 410, contentW, 148, 20);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#f7d574';
-    ctx.font = 'bold 22px Inter, sans-serif';
-    ctx.fillText('Preferred Botanical Delivery Courier (Click to Select):', padX + 24, 448);
-
-    const couriers = [
-      { val: 'Harpy Eagle Express', label: '🦅 Harpy Eagle (Instant)' },
-      { val: 'Three-Toed Sloth Courier', label: '🦥 Sloth (4–6 Weeks)' },
-      { val: 'Exploding Hura Pod', label: '💥 Hura Pod (160 MPH)' }
-    ];
-    const rW = (contentW - 72) / 3;
-    couriers.forEach((c, idx) => {
-      const rx = padX + 24 + idx * (rW + 12);
-      const ry = 468;
-      const isSelected = selectedCourier === c.val;
-      ctx.fillStyle = isSelected ? 'rgba(32, 115, 58, 0.9)' : 'rgba(8, 32, 18, 0.8)';
-      ctx.strokeStyle = isSelected ? '#f7d574' : 'rgba(120, 245, 160, 0.35)';
-      ctx.lineWidth = isSelected ? 3 : 1.5;
-      ctx.beginPath();
-      ctx.roundRect(rx, ry, rW, 66, 14);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 21px Inter, sans-serif';
-      ctx.fillText((isSelected ? '◉ ' : '◯ ') + c.label, rx + 18, ry + 40);
-      hitRegions.push({ id: `courier-${idx}`, courierVal: c.val, x: rx, y: ry, w: rW, h: 66 });
-    });
-
-    // Status / Error Banner
-    ctx.fillStyle = newsletterSubmittedMsg
-      ? 'rgba(18, 88, 42, 0.92)'
-      : newsletterErrorMsg
-        ? 'rgba(98, 22, 18, 0.92)'
-        : 'rgba(4, 22, 12, 0.78)';
-    ctx.strokeStyle = newsletterSubmittedMsg
-      ? '#64f596'
-      : newsletterErrorMsg
-        ? '#ff7b6b'
-        : 'rgba(247, 213, 116, 0.4)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(padX, 584, contentW, 74, 16);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = newsletterSubmittedMsg ? '#a8ffca' : newsletterErrorMsg ? '#ffb2a8' : '#fff0b8';
-    ctx.font = 'bold 22px Inter, sans-serif';
-    ctx.fillText(
-      newsletterSubmittedMsg ||
-        newsletterErrorMsg ||
-        '💡 Click the Name or Email box above to type directly onto this 3D leaf!',
-      padX + 24,
-      628
-    );
+        : 'Write your name on the leaf...';
+    ctx.fillText(dispName, nameBoxX + 22, nameBoxY + 42);
+    hitRegions.push({ id: 'input-explorer-name', x: nameBoxX, y: nameBoxY, w: inputW, h: 68 });
 
     drawLeafButton(
       ctx,
       hitRegions,
       'btn-newsletter-submit',
-      '🌿 Inscribe onto the Canopy Dispatch',
-      padX,
-      h - 130,
-      480,
-      62,
-      'emerald',
-      hoveredId
-    );
-    drawLeafButton(
-      ctx,
-      hitRegions,
-      'jump-5',
-      'Take Rainforest Quiz ▼',
-      w - padX - 330,
-      h - 130,
-      330,
-      62,
+      '✨ Write on Leaf',
+      nameBoxX + inputW + 24,
+      nameBoxY,
+      btnW,
+      68,
       'gold',
       hoveredId
     );
+
+    // Etching stage box
+    const stageY = 345;
+    const stageH = 380;
+    ctx.fillStyle = 'rgba(4, 28, 14, 0.58)';
+    ctx.strokeStyle = 'rgba(145, 255, 180, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(padX, stageY, contentW, stageH, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    if (nameEtchState.text) {
+      const targetStr = nameEtchState.text;
+      const elapsed = nowMs - nameEtchState.startTimeMs;
+      const fSize = targetStr.length > 16 ? 78 : targetStr.length > 11 ? 92 : 108;
+      ctx.font = `bold ${fSize}px Georgia, serif`;
+      const totalW = ctx.measureText(targetStr).width + (targetStr.length - 1) * 8;
+      let curX = padX + (contentW - totalW) * 0.5;
+      const baseY = stageY + 215;
+
+      for (let i = 0; i < targetStr.length; i++) {
+        const ch = targetStr[i];
+        const chW = ctx.measureText(ch).width;
+        const charStart = i * nameEtchState.msPerChar;
+        const tLocal = Math.max(0, Math.min(1, (elapsed - charStart) / nameEtchState.msPerChar));
+
+        if (tLocal > 0) {
+          ctx.save();
+          ctx.font = `bold ${fSize}px Georgia, serif`;
+          ctx.strokeStyle = '#fffef0';
+          ctx.lineWidth = 4;
+          ctx.setLineDash([400]);
+          ctx.lineDashOffset = (1 - tLocal) * 400;
+          ctx.strokeText(ch, curX, baseY);
+
+          if (tLocal > 0.45) {
+            ctx.globalAlpha = (tLocal - 0.45) / 0.55;
+            ctx.fillStyle = '#ffe885';
+            ctx.fillText(ch, curX, baseY);
+          }
+          ctx.restore();
+        }
+        curX += chW + 8;
+      }
+    }
+
+    ctx.fillStyle = '#ffe89e';
+    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      newsletterSubmittedMsg ||
+        newsletterErrorMsg ||
+        'Submit your name above to watch light trace each letter into the leaf blade.',
+      padX + contentW * 0.5,
+      stageY + stageH - 36
+    );
+    ctx.textAlign = 'left';
   } else if (step === 5) {
     // LEAF #5: MULTIPLE-CHOICE RAINFOREST EXAM ON THE 3D LEAF
     const q = QUIZ_QUESTIONS[currentQuizIndex];
@@ -2937,97 +2610,366 @@ function maskEmailAddress(rawEmail) {
 const domNameInput = document.getElementById('explorer-name');
 const domEmailInput = document.getElementById('explorer-email');
 const newsletterForm = document.getElementById('newsletter-form');
+const etchLettersGroup = document.getElementById('etch-letters-group');
+const etchLightBeamGroup = document.getElementById('etch-light-beam-group');
+const etchSparksGroup = document.getElementById('etch-sparks-group');
+const etchFlareOuter = document.getElementById('etch-flare-outer');
+const etchRayH = document.getElementById('etch-ray-h');
+const etchRayV = document.getElementById('etch-ray-v');
+const nameEtchStatusPill = document.getElementById('name-etch-status');
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const _etchMeasureCanvas = document.createElement('canvas');
+const _etchMeasureCtx = _etchMeasureCanvas.getContext('2d');
+
+/**
+ * Generates 3 directional stroke segments across a character's glyph box `[x .. x+w, y-capH .. y]`
+ * so the glowing light beam visibly traces the vertical stem, crossbar, and curves of each letter
+ * stroke-for-stroke while the SVG stroke-dashoffset reveals the glyph!
+ */
+function buildCharacterStrokes(ch, x, baseY, w, capH) {
+  const topY = baseY - capH * 0.84;
+  const midY = baseY - capH * 0.42;
+  const botY = baseY - capH * 0.04;
+  const leftX = x + w * 0.16;
+  const midX = x + w * 0.50;
+  const rightX = x + w * 0.84;
+
+  const upper = ch.toUpperCase();
+  if ('I1LJT'.includes(upper)) {
+    return [
+      { x1: leftX, y1: topY, x2: rightX, y2: topY },
+      { x1: midX, y1: topY, x2: midX, y2: botY },
+      { x1: leftX, y1: botY, x2: rightX, y2: botY }
+    ];
+  }
+  if ('O0QCGU'.includes(upper)) {
+    return [
+      { x1: midX, y1: topY, x2: leftX, y2: midY },
+      { x1: leftX, y1: midY, x2: midX, y2: botY },
+      { x1: midX, y1: botY, x2: rightX, y2: topY }
+    ];
+  }
+  if ('AVWXYMZN'.includes(upper)) {
+    return [
+      { x1: leftX, y1: botY, x2: midX, y2: topY },
+      { x1: midX, y1: topY, x2: rightX, y2: botY },
+      { x1: leftX, y1: midY, x2: rightX, y2: midY }
+    ];
+  }
+  // Default 3-stroke calligraphic pattern (vertical stem -> upper curve/bar -> lower diagonal/bar)
+  return [
+    { x1: leftX, y1: topY, x2: leftX, y2: botY },
+    { x1: leftX, y1: topY, x2: rightX, y2: midY },
+    { x1: leftX, y1: midY, x2: rightX, y2: botY }
+  ];
+}
+
+function startNameInscription(rawName) {
+  const cleanName = String(rawName || '').trim().slice(0, 24);
+  const fb = document.getElementById('newsletter-feedback');
+
+  if (!cleanName) {
+    newsletterSubmittedMsg = '';
+    newsletterErrorMsg = '⚠️ Type your name in the box above first, then click Write on Leaf!';
+    if (fb) fb.textContent = newsletterErrorMsg;
+    focusedInputId = 'explorer-name';
+    domNameInput?.focus();
+    requestActiveLeafRepaint();
+    return;
+  }
+
+  newsletterErrorMsg = '';
+  explorerNameVal = cleanName;
+  if (domNameInput && domNameInput.value !== cleanName) {
+    domNameInput.value = cleanName;
+  }
+
+  nameEtchState.text = cleanName;
+  nameEtchState.startTimeMs = performance.now();
+  nameEtchState.active = true;
+  nameEtchState.completed = false;
+  nameEtchState.msPerChar = Math.max(260, Math.min(460, Math.round(3800 / Math.max(4, cleanName.length))));
+  nameEtchState.letters = [];
+  nameEtchState.sparks = [];
+
+  if (etchLettersGroup) {
+    etchLettersGroup.replaceChildren();
+  }
+  if (etchSparksGroup) {
+    etchSparksGroup.replaceChildren();
+  }
+
+  const fontSize = cleanName.length > 16 ? 38 : cleanName.length > 11 ? 46 : 56;
+  const letterGap = cleanName.length > 14 ? 3 : 5;
+  _etchMeasureCtx.font = `bold ${fontSize}px Georgia, 'Times New Roman', serif`;
+
+  const charWidths = Array.from(cleanName).map((ch) =>
+    ch === ' ' ? fontSize * 0.34 : Math.max(fontSize * 0.32, _etchMeasureCtx.measureText(ch).width)
+  );
+  const totalWidth =
+    charWidths.reduce((sum, w) => sum + w, 0) + Math.max(0, cleanName.length - 1) * letterGap;
+
+  let cursorX = Math.max(24, (590 - totalWidth) * 0.5);
+  const baseY = 86;
+
+  // Create reusable spark circle nodes inside `#etch-sparks-group`
+  const sparkEls = [];
+  if (etchSparksGroup) {
+    for (let s = 0; s < 10; s++) {
+      const c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('r', s % 2 === 0 ? '2.6' : '1.8');
+      c.setAttribute('fill', s % 3 === 0 ? '#64ff9e' : '#fff6a8');
+      c.setAttribute('opacity', '0');
+      etchSparksGroup.appendChild(c);
+      sparkEls.push(c);
+    }
+  }
+  nameEtchState.sparkEls = sparkEls;
+
+  Array.from(cleanName).forEach((ch, idx) => {
+    const chW = charWidths[idx];
+    const g = document.createElementNS(SVG_NS, 'g');
+
+    const createGlyphLayer = (stroke, strokeWidth, fill, dash) => {
+      const t = document.createElementNS(SVG_NS, 'text');
+      t.setAttribute('x', cursorX.toFixed(1));
+      t.setAttribute('y', String(baseY));
+      t.setAttribute('font-family', "Georgia, 'Times New Roman', serif");
+      t.setAttribute('font-size', String(fontSize));
+      t.setAttribute('font-weight', '700');
+      t.setAttribute('fill', fill);
+      if (stroke) {
+        t.setAttribute('stroke', stroke);
+        t.setAttribute('stroke-width', String(strokeWidth));
+        t.setAttribute('stroke-linecap', 'round');
+        t.setAttribute('stroke-linejoin', 'round');
+      }
+      if (dash) {
+        t.setAttribute('stroke-dasharray', String(dash));
+        t.setAttribute('stroke-dashoffset', String(dash));
+      }
+      t.textContent = ch;
+      return t;
+    };
+
+    const dashLen = 290;
+    const grooveEl = createGlyphLayer('rgba(1, 15, 7, 0.92)', 5.2, 'none', dashLen);
+    const glowEl = createGlyphLayer('#58ff9c', 5.8, 'none', dashLen);
+    glowEl.setAttribute('opacity', '0');
+    const strokeEl = createGlyphLayer('#fffef2', 2.4, 'none', dashLen);
+    const fillEl = createGlyphLayer(null, 0, 'url(#etch-gold-grad)', 0);
+    fillEl.setAttribute('opacity', '0');
+
+    // Active stroke-guide laser path that traces the 3 directional strokes of the letter
+    const guidePathEl = document.createElementNS(SVG_NS, 'path');
+    guidePathEl.setAttribute('fill', 'none');
+    guidePathEl.setAttribute('stroke', '#fff8a6');
+    guidePathEl.setAttribute('stroke-width', '2.8');
+    guidePathEl.setAttribute('stroke-linecap', 'round');
+    guidePathEl.setAttribute('opacity', '0');
+
+    g.appendChild(grooveEl);
+    g.appendChild(glowEl);
+    g.appendChild(fillEl);
+    g.appendChild(strokeEl);
+    g.appendChild(guidePathEl);
+    etchLettersGroup?.appendChild(g);
+
+    const strokes = buildCharacterStrokes(ch, cursorX, baseY, chW, fontSize);
+
+    nameEtchState.letters.push({
+      char: ch,
+      x: cursorX,
+      y: baseY,
+      width: chW,
+      fontSize,
+      dashLen,
+      grooveEl,
+      glowEl,
+      strokeEl,
+      fillEl,
+      guidePathEl,
+      strokes
+    });
+
+    cursorX += chW + letterGap;
+  });
+
+  if (nameEtchStatusPill) {
+    nameEtchStatusPill.textContent = '✨ ETCHING WITH LIGHT...';
+  }
+  newsletterSubmittedMsg = `✨ Drawing "${cleanName}" stroke-by-stroke into the leaf...`;
+  if (fb) {
+    fb.textContent = newsletterSubmittedMsg;
+  }
+
+  triggerSporeBurst();
+  requestActiveLeafRepaint();
+}
+
+function updateNameInscriptionAnimation(nowMs) {
+  if (!nameEtchState.text || nameEtchState.letters.length === 0) return;
+
+  const elapsed = nowMs - nameEtchState.startTimeMs;
+  const msPerChar = nameEtchState.msPerChar;
+  let activeLetter = null;
+  let activeLocalT = 0;
+
+  nameEtchState.letters.forEach((item, idx) => {
+    const startMs = idx * msPerChar;
+    const rawT = (elapsed - startMs) / msPerChar;
+    const t = Math.max(0, Math.min(1, rawT));
+
+    if (item.char === ' ') {
+      return;
+    }
+
+    if (t <= 0) {
+      item.grooveEl.setAttribute('stroke-dashoffset', String(item.dashLen));
+      item.strokeEl.setAttribute('stroke-dashoffset', String(item.dashLen));
+      item.glowEl.setAttribute('opacity', '0');
+      item.fillEl.setAttribute('opacity', '0');
+      item.guidePathEl.setAttribute('opacity', '0');
+    } else if (t < 1) {
+      activeLetter = item;
+      activeLocalT = t;
+
+      const eased = t * t * (3 - 2 * t);
+      const offset = ((1 - eased) * item.dashLen).toFixed(1);
+      item.grooveEl.setAttribute('stroke-dashoffset', offset);
+      item.glowEl.setAttribute('stroke-dashoffset', offset);
+      item.strokeEl.setAttribute('stroke-dashoffset', offset);
+
+      // Pulse the bioluminescent halo brightly while the stroke is being drawn
+      const haloAlpha = 0.35 + 0.65 * Math.sin(t * Math.PI);
+      item.glowEl.setAttribute('opacity', haloAlpha.toFixed(2));
+
+      // Reveal the golden-chlorophyll inner fill as the strokes complete
+      const fillAlpha = Math.max(0, Math.min(1, (t - 0.38) / 0.62));
+      item.fillEl.setAttribute('opacity', fillAlpha.toFixed(2));
+
+      // Trace the active stroke segment (Stroke 1 -> Stroke 2 -> Stroke 3)
+      const segCount = item.strokes.length;
+      const scaledSeg = t * segCount;
+      const segIdx = Math.min(segCount - 1, Math.floor(scaledSeg));
+      const segT = scaledSeg - segIdx;
+      const seg = item.strokes[segIdx];
+      const curX = seg.x1 + (seg.x2 - seg.x1) * segT;
+      const curY = seg.y1 + (seg.y2 - seg.y1) * segT;
+
+      item.guidePathEl.setAttribute(
+        'd',
+        `M ${seg.x1.toFixed(1)} ${seg.y1.toFixed(1)} L ${curX.toFixed(1)} ${curY.toFixed(1)}`
+      );
+      item.guidePathEl.setAttribute('opacity', (0.85 * Math.sin(segT * Math.PI)).toFixed(2));
+    } else {
+      item.grooveEl.setAttribute('stroke-dashoffset', '0');
+      item.glowEl.setAttribute('stroke-dashoffset', '0');
+      item.strokeEl.setAttribute('stroke-dashoffset', '0');
+      const shimmer = 0.24 + 0.14 * Math.sin(nowMs * 0.005 + idx * 0.8);
+      item.glowEl.setAttribute('opacity', shimmer.toFixed(2));
+      item.fillEl.setAttribute('opacity', '1');
+      item.guidePathEl.setAttribute('opacity', '0');
+    }
+  });
+
+  if (activeLetter && etchLightBeamGroup) {
+    const segCount = activeLetter.strokes.length;
+    const scaledSeg = activeLocalT * segCount;
+    const segIdx = Math.min(segCount - 1, Math.floor(scaledSeg));
+    const segT = scaledSeg - segIdx;
+    const seg = activeLetter.strokes[segIdx];
+
+    const penX = seg.x1 + (seg.x2 - seg.x1) * segT;
+    const penY = seg.y1 + (seg.y2 - seg.y1) * segT;
+
+    etchLightBeamGroup.setAttribute('opacity', '1');
+    etchLightBeamGroup.setAttribute('transform', `translate(${penX.toFixed(1)}, ${penY.toFixed(1)})`);
+
+    const flareRadius = 25 + Math.sin(nowMs * 0.045) * 6;
+    etchFlareOuter?.setAttribute('r', flareRadius.toFixed(1));
+    const rotDeg = (nowMs * 0.22) % 360;
+    etchRayH?.setAttribute('transform', `rotate(${rotDeg.toFixed(1)})`);
+    etchRayV?.setAttribute('transform', `rotate(${rotDeg.toFixed(1)})`);
+
+    // Animate radiating light sparks around the active stroke tip
+    if (nameEtchState.sparkEls) {
+      nameEtchState.sparkEls.forEach((spEl, sIdx) => {
+        const phase = ((nowMs * 0.007 + sIdx * 0.31) % 1);
+        const angle = sIdx * 1.15 + nowMs * 0.004;
+        const dist = 4 + phase * 26;
+        const sx = Math.cos(angle) * dist;
+        const sy = Math.sin(angle) * dist - phase * 8;
+        spEl.setAttribute('cx', sx.toFixed(1));
+        spEl.setAttribute('cy', sy.toFixed(1));
+        spEl.setAttribute('opacity', ((1 - phase) * 0.95).toFixed(2));
+      });
+    }
+
+    requestActiveLeafRepaint();
+  } else if (nameEtchState.active) {
+    // Just finished drawing the final letter!
+    nameEtchState.active = false;
+    nameEtchState.completed = true;
+    etchLightBeamGroup?.setAttribute('opacity', '0');
+    if (nameEtchStatusPill) {
+      nameEtchStatusPill.textContent = '✨ INSCRIBED IN LIGHT';
+    }
+    const fb = document.getElementById('newsletter-feedback');
+    newsletterSubmittedMsg = `✨ "${nameEtchState.text}" is now etched into the living leaf!`;
+    if (fb) {
+      fb.textContent = newsletterSubmittedMsg;
+    }
+    triggerSporeBurst();
+    requestActiveLeafRepaint();
+  }
+}
 
 // Keep live state synced when user types into DOM inputs
 domNameInput?.addEventListener('input', () => {
   explorerNameVal = domNameInput.value;
   newsletterErrorMsg = '';
-});
-domEmailInput?.addEventListener('input', () => {
-  explorerEmailVal = domEmailInput.value;
-  newsletterErrorMsg = '';
+  requestActiveLeafRepaint();
 });
 domNameInput?.addEventListener('focus', () => {
   focusedInputId = 'explorer-name';
-});
-domEmailInput?.addEventListener('focus', () => {
-  focusedInputId = 'explorer-email';
+  requestActiveLeafRepaint();
 });
 domNameInput?.addEventListener('blur', () => {
   if (focusedInputId === 'explorer-name') focusedInputId = null;
-});
-domEmailInput?.addEventListener('blur', () => {
-  if (focusedInputId === 'explorer-email') focusedInputId = null;
+  requestActiveLeafRepaint();
 });
 
 // Also allow direct keyboard typing when a 3D leaf input is active
 window.addEventListener('keydown', (e) => {
   if (!focusedInputId) return;
-  if (document.activeElement === domNameInput || document.activeElement === domEmailInput) {
-    return; // Native input is already handling keystrokes
+  if (document.activeElement === domNameInput) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNewsletterSubmit();
+    }
+    requestActiveLeafRepaint();
+    return;
   }
   if (e.key === 'Backspace') {
-    if (focusedInputId === 'explorer-name') {
-      explorerNameVal = explorerNameVal.slice(0, -1);
-      if (domNameInput) domNameInput.value = explorerNameVal;
-    } else {
-      explorerEmailVal = explorerEmailVal.slice(0, -1);
-      if (domEmailInput) domEmailInput.value = explorerEmailVal;
-    }
-    e.preventDefault();
-  } else if (e.key === 'Tab') {
-    focusedInputId = focusedInputId === 'explorer-name' ? 'explorer-email' : 'explorer-name';
+    explorerNameVal = explorerNameVal.slice(0, -1);
+    if (domNameInput) domNameInput.value = explorerNameVal;
     e.preventDefault();
   } else if (e.key === 'Enter') {
     handleNewsletterSubmit();
     e.preventDefault();
-  } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-    if (focusedInputId === 'explorer-name' && explorerNameVal.length < 60) {
-      explorerNameVal += e.key;
-      if (domNameInput) domNameInput.value = explorerNameVal;
-    } else if (focusedInputId === 'explorer-email' && explorerEmailVal.length < 80) {
-      explorerEmailVal += e.key;
-      if (domEmailInput) domEmailInput.value = explorerEmailVal;
-    }
+  } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && explorerNameVal.length < 24) {
+    explorerNameVal += e.key;
+    if (domNameInput) domNameInput.value = explorerNameVal;
     newsletterErrorMsg = '';
   }
-  if (typeof canvas.requestPaint === 'function') {
-    canvas.requestPaint();
-  }
+  requestActiveLeafRepaint();
 });
 
 function handleNewsletterSubmit() {
-  const cleanName = explorerNameVal.trim();
-  const cleanEmail = explorerEmailVal.trim();
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail);
-
-  const fb = document.getElementById('newsletter-feedback');
-  if (cleanName.length < 2) {
-    newsletterSubmittedMsg = '';
-    newsletterErrorMsg = '⚠️ Please enter your Explorer Name (at least 2 characters).';
-    if (fb) fb.textContent = newsletterErrorMsg;
-    focusedInputId = 'explorer-name';
-    domNameInput?.focus();
-    if (typeof canvas.requestPaint === 'function') canvas.requestPaint();
-    return;
-  }
-  if (!emailOk) {
-    newsletterSubmittedMsg = '';
-    newsletterErrorMsg = '⚠️ Please enter a valid email address (e.g. explorer@rainforest.org).';
-    if (fb) fb.textContent = newsletterErrorMsg;
-    focusedInputId = 'explorer-email';
-    domEmailInput?.focus();
-    if (typeof canvas.requestPaint === 'function') canvas.requestPaint();
-    return;
-  }
-
-  newsletterErrorMsg = '';
-  const masked = maskEmailAddress(cleanEmail);
-  newsletterSubmittedMsg = `✅ Inscribed! Dispatch routed to ${masked} via ${selectedCourier}!`;
-  if (fb) {
-    fb.textContent = newsletterSubmittedMsg;
-  }
-  triggerSporeBurst();
+  const currentVal = domNameInput ? domNameInput.value : explorerNameVal;
+  startNameInscription(currentVal);
 }
 
 newsletterForm?.addEventListener('submit', (e) => {
@@ -3058,7 +3000,7 @@ function syncQuizDOM() {
   const progressText = document.getElementById('quiz-progress-text');
   if (progressText) progressText.textContent = `Question ${currentQuizIndex + 1} of ${QUIZ_QUESTIONS.length}`;
   const scoreBadge = document.getElementById('quiz-score-badge');
-  if (scoreBadge) scoreBadge.textContent = `Score: ${score} / ${QUIZ_QUESTIONS.length}`;
+  if (scoreBadge) scoreBadge.textContent = `SCORE: ${score} / ${QUIZ_QUESTIONS.length}`;
   const qPrompt =
     document.getElementById('quiz-prompt-text') ||
     document.getElementById('quiz-question-prompt');
@@ -3072,7 +3014,7 @@ function syncQuizDOM() {
 
   const userAns = quizUserAnswers[currentQuizIndex];
   document.querySelectorAll('.quiz-choice-btn').forEach((btn, idx) => {
-    const textSpan = btn.querySelector('.choice-text');
+    const textSpan = btn.querySelector('.choice-label') || btn.querySelector('.choice-text');
     if (textSpan && q.choices[idx]) textSpan.textContent = q.choices[idx];
     btn.classList.remove('is-correct', 'is-wrong');
     if (userAns !== null) {
@@ -3081,12 +3023,14 @@ function syncQuizDOM() {
     }
   });
 
-  const explainEl = document.getElementById('quiz-explanation');
+  const explainEl =
+    document.getElementById('quiz-explanation-banner') ||
+    document.getElementById('quiz-explanation');
   if (explainEl) {
     explainEl.textContent =
       userAns !== null
         ? `${userAns === q.correctIndex ? '' : '❌ Not quite! '}${q.explanation}`
-        : 'Click an option above to test your rainforest survival instincts.';
+        : 'Select an answer choice etched into the leaf above.';
   }
   requestActiveLeafRepaint();
 }
@@ -3101,6 +3045,8 @@ function bloomMoreCanopyOrchids(kind, message) {
   finaleStatusMsg = message;
   const st = document.getElementById('finale-pledge-status');
   if (st) st.textContent = message;
+  const counterBadge = document.getElementById('pledge-counter-badge');
+  if (counterBadge) counterBadge.textContent = `BLOOMS: ${activeOrchidCount} ACTIVE`;
   document.querySelectorAll('.btn-pledge-action').forEach((btn) => {
     if (pledgedSet.has(btn.dataset.pledge)) {
       btn.classList.add('is-pledged');
@@ -3119,19 +3065,27 @@ function executeLeafAction(hitRegion) {
     scrollToStep(1);
   } else if (id === 'btn-pulse-spores') {
     triggerSporeBurst();
+    const badge = document.getElementById('hic-pipeline-badge');
+    if (badge) {
+      badge.textContent = '✨ Canopy Spores Released! Drag across leaf text to select!';
+    }
   } else if (id.startsWith('jump-')) {
     const stepNum = Number(id.replace('jump-', ''));
     scrollToStep(stepNum);
   } else if (id === 'btn-sloth-dance') {
     slothPooCount++;
-    const fb = document.getElementById('sloth-dance-feedback');
+    const fb =
+      document.getElementById('sloth-stat-readout') ||
+      document.getElementById('sloth-dance-feedback');
     if (fb) {
-      fb.textContent = `🕺 Poo Dance #${slothPooCount} (-33% weight) • Moths: ${124 + slothPooCount * 38}`;
+      fb.textContent = `🕺 Poo Dance #${slothPooCount} (-33% weight) • Fur Moths: ${124 + slothPooCount * 38}`;
     }
     triggerSporeBurst();
   } else if (id === 'btn-detonate-pod') {
     podDetonations++;
-    const fb = document.getElementById('pod-blast-feedback');
+    const fb =
+      document.getElementById('grenade-stat-readout') ||
+      document.getElementById('pod-blast-feedback');
     if (fb) {
       fb.textContent = `💥 BOOM #${podDetonations}: Flung ${(18 + (podDetonations % 5) * 4).toFixed(1)}m at 160 MPH!`;
     }
@@ -3139,14 +3093,18 @@ function executeLeafAction(hitRegion) {
   } else if (id === 'btn-shake-decoy') {
     decoyShakes++;
     pihaCallTriggered = false;
-    const fb = document.getElementById('spider-decoy-feedback');
+    const fb =
+      document.getElementById('decoy-stat-readout') ||
+      document.getElementById('spider-decoy-feedback');
     if (fb) {
-      fb.textContent = `🕸️ Decoy Active • Wasps Fooled: ${decoyShakes}`;
+      fb.textContent = `🕸️ Decoy Active • Wasps Fooled: ${14 + decoyShakes}`;
     }
     triggerSporeBurst();
   } else if (id === 'btn-piha-call') {
     pihaCallTriggered = true;
-    const fb = document.getElementById('spider-decoy-feedback');
+    const fb =
+      document.getElementById('decoy-stat-readout') ||
+      document.getElementById('spider-decoy-feedback');
     if (fb) {
       fb.textContent = '📢 FWEEEE-OOOH! 116 dB shockwave blasted!';
     }
@@ -3184,10 +3142,14 @@ function executeLeafAction(hitRegion) {
       leaf6BurnState = 'burning';
       leaf6BurnStartTime = performance.now();
       leaf6BurnProgress = 0.02;
+      const pill = document.getElementById('burn-status-pill');
+      if (pill) pill.textContent = '🔥 ENGULFED IN FLAMES';
     }
   } else if (id === 'btn-fastforward-regrowth') {
     leaf6BurnState = 'intact';
     leaf6BurnProgress = 0.0;
+    const pill = document.getElementById('burn-status-pill');
+    if (pill) pill.textContent = 'LIVING CANOPY';
     document.getElementById('burn-state-intact')?.classList.remove('is-hidden');
     document.getElementById('burn-state-remains')?.classList.add('is-hidden');
     triggerSporeBurst();
@@ -3231,6 +3193,10 @@ document.getElementById('btn-fastforward-regrowth')?.addEventListener('click', (
 document.getElementById('btn-quiz-next')?.addEventListener('click', () => executeLeafAction({ id: 'btn-quiz-next' }));
 document.getElementById('btn-quiz-reset')?.addEventListener('click', () => executeLeafAction({ id: 'btn-quiz-reset' }));
 document.getElementById('btn-bloom-all')?.addEventListener('click', () => executeLeafAction({ id: 'btn-bloom-all' }));
+document.getElementById('btn-newsletter-submit')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  handleNewsletterSubmit();
+});
 
 document.querySelectorAll('.btn-leaf-step').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -3303,8 +3269,9 @@ function findLeafHitRegionAtPointer(clientX, clientY) {
 
   const uv = intersects[0].uv;
   const domU = activeNode.side > 0.1 ? 1.0 - uv.x : uv.x;
-  const domUvX = (domU - 0.12) / 0.63;
-  const domUvY = 1.0 - (uv.y - 0.15) / 0.70;
+  const domStartU = activeNode.side > 0.1 ? 0.24 : 0.14;
+  const domUvX = (domU - domStartU) / 0.62;
+  const domUvY = 1.0 - (uv.y - 0.16) / 0.68;
 
   if (domUvX < 0 || domUvX > 1 || domUvY < 0 || domUvY > 1) return null;
 
@@ -3377,22 +3344,12 @@ function updateScrollPosition() {
 window.addEventListener('scroll', updateScrollPosition, { passive: true });
 updateScrollPosition();
 
-const tempMVPMatrix = new THREE.Matrix4();
-const tempViewProjMatrix = new THREE.Matrix4();
-const tempDomRegionMatrix = new THREE.Matrix4();
-const tempLeafWorldDomMatrix = new THREE.Matrix4();
-
 const _evalAxis = new THREE.Vector3();
 const _evalPivot = new THREE.Vector3();
-const _pCenter = new THREE.Vector3();
-const _pLeft = new THREE.Vector3();
-const _pRight = new THREE.Vector3();
-const _pBottom = new THREE.Vector3();
-const _pTop = new THREE.Vector3();
-const _colX = new THREE.Vector3();
-const _colY = new THREE.Vector3();
-const _colZ = new THREE.Vector3();
-const _origin = new THREE.Vector3();
+const _pTL = new THREE.Vector3();
+const _pTR = new THREE.Vector3();
+const _pBL = new THREE.Vector3();
+const _pBR = new THREE.Vector3();
 
 function applyOrigamiPetalHingeJS(
   pos,
@@ -3605,14 +3562,27 @@ function bindNativeHICTextureToThree(node) {
   node.leafShaderMat.uniforms.uFlipY.value = 1.0;
 }
 
+function projectWorldPointToCanvasCSS(worldVec, cw, ch) {
+  worldVec.project(camera);
+  return {
+    x: (worldVec.x + 1.0) * 0.5 * cw,
+    y: (1.0 - worldVec.y) * 0.5 * ch
+  };
+}
+
 function syncInvisibleDOMHitLayer(node, unfoldProgress, foldDir = -1.0, timeSec = 0.0) {
   const element = node.domCard;
   if (!element) return;
 
   if (unfoldProgress < 0.02) {
     if (supportsNativeHIC && typeof canvas.clearElementGeometry === 'function') {
-      canvas.clearElementGeometry(element);
+      try {
+        canvas.clearElementGeometry(element);
+      } catch (_err) {
+        // Ignore if not registered
+      }
     }
+    element.style.transform = 'translate3d(-9999px, -9999px, 0)';
     element.style.pointerEvents = 'none';
     element.setAttribute('inert', '');
     return;
@@ -3621,60 +3591,75 @@ function syncInvisibleDOMHitLayer(node, unfoldProgress, foldDir = -1.0, timeSec 
   element.removeAttribute('inert');
   element.style.pointerEvents = 'auto';
 
-  node.leafMesh.updateMatrixWorld();
+  // Ensure parent `leavesGroup` and `node.nodeGroup` world matrices are updated before
+  // transforming leaf vertices to world space (since `syncInvisibleDOMHitLayer` runs
+  // before `renderer.render(scene, camera)` and `nodeGroup` may have just become visible).
+  node.leafMesh.updateWorldMatrix(true, false);
 
-  // Sample the 3D unfolding leaf surface across the DOM region so the hit-testing
-  // `canvasTransform` dynamically tracks the 3D position, rotation, tilt, and foreshortening
-  // of the text at EVERY step of the unfolding and refolding animation!
+  const cw = Math.max(1, canvas.clientWidth || window.innerWidth);
+  const ch = Math.max(1, canvas.clientHeight || window.innerHeight);
+
+  // Sample the 3D unfolding leaf surface across the DOM region and project to canvas CSS pixels
+  // so `canvasTransform` is a well-conditioned 2D affine DOMMatrix (`m44 = 1, m33 = 1`)
+  // that accurately tracks position, scale, and tilt at every step of the animation.
   const span = 0.36;
-  evaluateDomQuadPoint3D(0.0, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pCenter);
-  evaluateDomQuadPoint3D(-span, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pLeft);
-  evaluateDomQuadPoint3D(span, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pRight);
-  evaluateDomQuadPoint3D(0.0, -span, unfoldProgress, foldDir, node.side, timeSec, _pBottom);
-  evaluateDomQuadPoint3D(0.0, span, unfoldProgress, foldDir, node.side, timeSec, _pTop);
+  const invSpan = 0.5 / span;
 
-  _colX.subVectors(_pRight, _pLeft).multiplyScalar(1.0 / (2.0 * span));
-  _colY.subVectors(_pTop, _pBottom).multiplyScalar(1.0 / (2.0 * span));
-  _colZ.crossVectors(_colX, _colY);
-  if (_colZ.lengthSq() > 1e-6) {
-    _colZ.normalize();
-  } else {
-    _colZ.set(0, 0, 1);
-  }
+  evaluateDomQuadPoint3D(-span, span, unfoldProgress, foldDir, node.side, timeSec, _pTL);
+  evaluateDomQuadPoint3D(span, span, unfoldProgress, foldDir, node.side, timeSec, _pTR);
+  evaluateDomQuadPoint3D(-span, -span, unfoldProgress, foldDir, node.side, timeSec, _pBL);
+  evaluateDomQuadPoint3D(span, -span, unfoldProgress, foldDir, node.side, timeSec, _pBR);
 
-  _origin
-    .copy(_pCenter)
-    .multiplyScalar(0.5)
-    .addScaledVector(_pLeft, 0.125)
-    .addScaledVector(_pRight, 0.125)
-    .addScaledVector(_pBottom, 0.125)
-    .addScaledVector(_pTop, 0.125);
+  _pTL.applyMatrix4(node.leafMesh.matrixWorld);
+  _pTR.applyMatrix4(node.leafMesh.matrixWorld);
+  _pBL.applyMatrix4(node.leafMesh.matrixWorld);
+  _pBR.applyMatrix4(node.leafMesh.matrixWorld);
 
-  tempDomRegionMatrix.makeBasis(_colX, _colY, _colZ);
-  tempDomRegionMatrix.setPosition(_origin.x, _origin.y, _origin.z);
-  tempLeafWorldDomMatrix.multiplyMatrices(node.leafMesh.matrixWorld, tempDomRegionMatrix);
+  const sTL = projectWorldPointToCanvasCSS(_pTL, cw, ch);
+  const sTR = projectWorldPointToCanvasCSS(_pTR, cw, ch);
+  const sBL = projectWorldPointToCanvasCSS(_pBL, cw, ch);
+  const sBR = projectWorldPointToCanvasCSS(_pBR, cw, ch);
 
-  tempViewProjMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-  tempMVPMatrix.multiplyMatrices(tempViewProjMatrix, tempLeafWorldDomMatrix);
+  const centerX = 0.25 * (sTL.x + sTR.x + sBL.x + sBR.x);
+  const centerY = 0.25 * (sTL.y + sTR.y + sBL.y + sBR.y);
+
+  const axisXx = 0.5 * (sTR.x - sTL.x + (sBR.x - sBL.x)) * invSpan;
+  const axisXy = 0.5 * (sTR.y - sTL.y + (sBR.y - sBL.y)) * invSpan;
+  const axisYx = 0.5 * (sBL.x - sTL.x + (sBR.x - sTR.x)) * invSpan;
+  const axisYy = 0.5 * (sBL.y - sTL.y + (sBR.y - sTR.y)) * invSpan;
+
+  const fullTL = {
+    x: centerX - 0.5 * axisXx - 0.5 * axisYx,
+    y: centerY - 0.5 * axisXy - 0.5 * axisYy
+  };
+  const fullTR = {
+    x: fullTL.x + axisXx,
+    y: fullTL.y + axisXy
+  };
+  const fullBL = {
+    x: fullTL.x + axisYx,
+    y: fullTL.y + axisYy
+  };
+
+  const canvasTransform = computeCanvasTransform(element, fullTL, fullTR, fullBL);
 
   if (supportsNativeHIC && typeof canvas.updateElementGeometry === 'function') {
-    const canvasTransform = computeCanvasTransform(canvas, element, tempMVPMatrix.elements);
-    canvas.updateElementGeometry(element, {
-      canvasTransform
-    });
-  } else {
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    const cardW = element.offsetWidth || 650;
-    const cardH = element.offsetHeight || 400;
-    const tx = (cw - cardW) * 0.5;
-    const ty = (ch - cardH) * 0.5;
-    element.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0)`;
+    try {
+      canvas.updateElementGeometry(element, {
+        canvasTransform
+      });
+    } catch (_err) {
+      // Ignore if unsupported
+    }
   }
+  element.style.transform = canvasTransform.toString();
 }
 
 function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
   const timeSec = nowMs * 0.001;
+
+  // Update stroke-for-stroke light inscription animation on Leaf #4
+  updateNameInscriptionAnimation(nowMs);
 
   // 1. Smoothly interpolate scroll step (0..7)
   smoothScrollStep += (targetScrollStep - smoothScrollStep) * 0.14;
