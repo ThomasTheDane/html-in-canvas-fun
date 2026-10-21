@@ -482,6 +482,26 @@ body {
 .config-trigger-wrap {
   display: flex;
   align-items: stretch;
+  gap: 0.65rem;
+}
+
+.brutal-btn-mode-toggle {
+  background: var(--mint-green);
+  color: var(--ink);
+  font-size: 0.96rem;
+  padding: 0 1.15rem;
+  min-height: 68px;
+  box-shadow: var(--shadow-lg);
+}
+
+.brutal-btn-mode-toggle:hover {
+  background: var(--acid-yellow);
+}
+
+.brutal-btn-mode-toggle[aria-pressed='true'] {
+  background: var(--punch-coral);
+  color: #ffffff;
+  text-shadow: 2px 2px 0px var(--ink);
 }
 
 .brutal-btn-config {
@@ -788,6 +808,52 @@ body {
   color: var(--ink);
 }
 
+/* In Spiral Mode, both immediate options and popped-out lookahead options share the
+   same tight box and base font-size so lookahead words smoothly scale up from tiny
+   (~0.35x) to full spiral size (~0.92-1.06x) with zero layout jump on click. */
+#canvas-viewport.is-spiral-mode .fractal-node-el.is-next-option,
+#canvas-viewport.is-spiral-mode .fractal-node-el.is-lookahead-option {
+  min-width: 0;
+  font-size: clamp(1.7rem, 2.55vw, 2.45rem);
+  font-weight: 800;
+  padding: 0 0.35rem;
+}
+
+#canvas-viewport.is-spiral-mode .fractal-node-el.is-lookahead-option {
+  pointer-events: none;
+  z-index: 18;
+}
+
+#canvas-viewport.is-spiral-mode .fractal-node-el.is-lookahead-option .node-word-text {
+  color: rgba(17, 17, 17, 0.62);
+}
+
+#canvas-viewport.is-spiral-mode .fractal-node-el.is-lookahead-option .node-prob-pill {
+  opacity: 0;
+}
+
+.fractal-node-el.is-spiral-echo {
+  font-size: clamp(1.12rem, 1.65vw, 1.55rem);
+  font-weight: 700;
+  min-width: 0;
+  padding: 0 0.3rem;
+  z-index: 6;
+}
+
+.fractal-node-el.is-spiral-echo .node-word-text {
+  color: rgba(17, 17, 17, 0.28);
+  transition: color 0.12s ease;
+}
+
+.fractal-node-el.is-spiral-echo:hover .node-word-text {
+  color: var(--cobalt-blue);
+}
+
+.fractal-node-el.is-spiral-echo .node-prob-pill {
+  font-size: 0.64rem;
+  color: rgba(17, 17, 17, 0.32);
+}
+
 .node-word-text {
   color: var(--ink);
   font-weight: 800;
@@ -830,6 +896,27 @@ body {
   left: 0.9rem;
   z-index: 10;
   pointer-events: none;
+}
+
+.stage-top-right-controls {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.95rem;
+  z-index: 15;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.brutal-stage-mode-btn {
+  background: var(--mint-green);
+  font-size: 0.84rem;
+  letter-spacing: 0.03em;
+}
+
+.brutal-stage-mode-btn[aria-pressed='true'] {
+  background: var(--punch-coral);
+  color: #ffffff;
+  text-shadow: 1px 1px 0px var(--ink);
 }
 
 .brutal-status-chip {

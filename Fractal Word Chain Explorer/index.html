@@ -77,8 +77,17 @@
         <span id="prompt-error" class="prompt-error-badge" role="alert" aria-live="polite"></span>
       </div>
 
-      <!-- 3. Right Configuration Trigger Button -->
+      <!-- 3. Right Mode Toggle & Configuration Trigger Buttons -->
       <div class="config-trigger-wrap">
+        <button
+          type="button"
+          id="btn-toggle-render-mode"
+          class="brutal-btn brutal-btn-mode-toggle"
+          aria-pressed="false"
+          title="Switch between Linear Stream and Outer Wilds Inward Fractal Spiral"
+        >
+          🌀 SPIRAL MODE
+        </button>
         <button
           type="button"
           id="btn-config"
@@ -216,6 +225,19 @@
           <span class="telemetry-dot" id="gen-activity-dot"></span>
           <span id="telemetry-text">SCROLL VERTICAL OR CLICK WORDS TO FLOW • HOVER TO PICK PATH</span>
         </div>
+      </div>
+
+      <!-- Top-Right Stage Mode Toggle -->
+      <div class="stage-top-right-controls">
+        <button
+          type="button"
+          id="btn-stage-mode-toggle"
+          class="brutal-icon-btn brutal-stage-mode-btn"
+          aria-pressed="false"
+          title="Toggle Outer Wilds Inward Fractal Spiral Mode"
+        >
+          🌀 NOMAI SPIRAL
+        </button>
       </div>
 
       <!-- Bold Neobrutalist Step Navigation Controls -->

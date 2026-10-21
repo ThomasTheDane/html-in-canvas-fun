@@ -40,6 +40,8 @@ const telemetryText = document.getElementById('telemetry-text');
 const hicBadge = document.getElementById('hic-badge');
 const wordBufferSpinnerWrap = document.getElementById('word-buffer-spinner-wrap');
 const wordBufferSpinnerLabel = document.getElementById('word-buffer-spinner-label');
+const btnToggleRenderMode = document.getElementById('btn-toggle-render-mode');
+const btnStageModeToggle = document.getElementById('btn-stage-mode-toggle');
 
 const btnStepBack = document.getElementById('btn-step-back');
 const btnStepForward = document.getElementById('btn-step-forward');
@@ -357,14 +359,90 @@ function getNodeWordWidth(node, fallback = 110) {
   return node.domEl.offsetWidth || fallback;
 }
 
+let renderMode = 'linear'; // 'linear' | 'spiral'
+let spiralPromptPrefixWords = []; // Preceding words of root prompt curved along outer spiral in 'spiral' mode
+let currentSpiralRefRadius = 210;
+
+function toggleRenderMode(explicitMode = null) {
+  renderMode = explicitMode || (renderMode === 'linear' ? 'spiral' : 'linear');
+  const isSpiral = renderMode === 'spiral';
+
+  if (btnToggleRenderMode) {
+    btnToggleRenderMode.setAttribute('aria-pressed', String(isSpiral));
+    btnToggleRenderMode.textContent = isSpiral ? '🌀 SPIRAL: ON' : '🌀 SPIRAL MODE';
+  }
+  if (btnStageModeToggle) {
+    btnStageModeToggle.setAttribute('aria-pressed', String(isSpiral));
+    btnStageModeToggle.textContent = isSpiral ? '🌀 NOMAI SPIRAL: ON' : '🌀 NOMAI SPIRAL';
+  }
+  canvasViewport?.classList.toggle('is-spiral-mode', isSpiral);
+
+  manualPanOffsetX = 0;
+  recomputeTreeLayout();
+}
+
+function setNodeLinearTarget(node, x, y) {
+  node.usePolarSpiral = false;
+  node.targetX = x;
+  node.targetY = y;
+  node.targetScale = 1.0;
+  node.targetRotation = 0;
+
+  if (!node.hasInitializedPos) {
+    node.renderX = x;
+    node.renderY = y;
+    node.renderScale = 1.0;
+    node.renderRotation = 0;
+    node.hasInitializedPos = true;
+  }
+}
+
+function setNodeSpiralTarget(node, theta, radius, scale, rotation) {
+  const targetX = radius * Math.cos(theta);
+  const targetY = radius * Math.sin(theta);
+
+  node.usePolarSpiral = true;
+  node.targetSpiralTheta = theta;
+  node.targetSpiralR = radius;
+  node.targetX = targetX;
+  node.targetY = targetY;
+  node.targetScale = scale;
+  node.targetRotation = rotation;
+
+  if (!node.hasInitializedPos || typeof node.renderSpiralTheta !== 'number') {
+    node.renderSpiralTheta = theta;
+    node.renderSpiralR = radius;
+    node.renderX = targetX;
+    node.renderY = targetY;
+    node.renderScale = scale;
+    node.renderRotation = rotation;
+    node.hasInitializedPos = true;
+  }
+}
+
+function recomputeTreeLayout() {
+  if (renderMode === 'spiral') {
+    recomputeSpiralTreeLayout();
+  } else {
+    recomputeLinearTreeLayout();
+  }
+}
+
 /**
  * Computes the horizontal Sentence-So-Far spine (vertically centered, anchored at ~1/3
  * of the screen width) and the vertical Next-Word Option columns just to its right
  * (spanning 80% of the chart window height with 10% top and 10% bottom buffer).
  */
-function recomputeTreeLayout() {
+function recomputeLinearTreeLayout() {
   const root = treeNodes.get(rootNodeId);
   if (!root) return;
+
+  // Restore full prompt text on root element in linear mode
+  const rootWordSpan = root.domEl?.querySelector('.node-word-text');
+  if (rootWordSpan && rootWordSpan.textContent !== root.display) {
+    rootWordSpan.textContent = root.display;
+  }
+  spiralPromptPrefixWords = [];
 
   // Ensure sentencePath only contains valid nodes in treeNodes
   sentencePath = sentencePath.filter((id) => treeNodes.has(id));
@@ -421,14 +499,7 @@ function recomputeTreeLayout() {
     node.domEl.style.minWidth = '0px';
 
     const w = getNodeWordWidth(node, isRoot ? 340 : 95);
-    node.targetX = cursorX;
-    node.targetY = 0;
-
-    if (!node.hasInitializedPos) {
-      node.renderX = node.targetX;
-      node.renderY = node.targetY;
-      node.hasInitializedPos = true;
-    }
+    setNodeLinearTarget(node, cursorX, 0);
 
     tipRightWorldX = node.targetX + w;
     const wordGap = isRoot ? 8 : node.isWordStart === false ? 1 : 6;
@@ -452,14 +523,15 @@ function recomputeTreeLayout() {
     }`;
     opt.domEl.style.setProperty('--node-box-h', `${col1BoxH}px`);
 
-    opt.targetX = col1WorldX;
-    opt.targetY = (idx - (col1Nodes.length - 1) / 2) * col1SlotPitch;
-
+    const targetY = (idx - (col1Nodes.length - 1) / 2) * col1SlotPitch;
     if (!opt.hasInitializedPos) {
       opt.renderX = tipRightWorldX + 16;
       opt.renderY = tipNode.renderY || 0;
+      opt.renderScale = 1.0;
+      opt.renderRotation = 0;
       opt.hasInitializedPos = true;
     }
+    setNodeLinearTarget(opt, col1WorldX, targetY);
 
     const w = getNodeWordWidth(opt, 160) + 28;
     if (w > maxCol1Width) maxCol1Width = w;
@@ -480,14 +552,15 @@ function recomputeTreeLayout() {
     lookNode.domEl.className = 'fractal-node-el is-lookahead-option';
     lookNode.domEl.style.setProperty('--node-box-h', `${col2BoxH}px`);
 
-    lookNode.targetX = col2WorldX;
-    lookNode.targetY = (idx - (col2Nodes.length - 1) / 2) * col2SlotPitch;
-
+    const targetY = (idx - (col2Nodes.length - 1) / 2) * col2SlotPitch;
     if (!lookNode.hasInitializedPos) {
       lookNode.renderX = highlightedNode ? highlightedNode.renderX + 36 : col2WorldX;
-      lookNode.renderY = highlightedNode ? highlightedNode.renderY : lookNode.targetY;
+      lookNode.renderY = highlightedNode ? highlightedNode.renderY : targetY;
+      lookNode.renderScale = 1.0;
+      lookNode.renderRotation = 0;
       lookNode.hasInitializedPos = true;
     }
+    setNodeLinearTarget(lookNode, col2WorldX, targetY);
   });
 
   // 4. Hide all other nodes so only the active sentence + next word columns are shown
@@ -511,13 +584,218 @@ function recomputeTreeLayout() {
   const oneThirdScreenX = viewportCssWidth * 0.35;
   let desiredRightScreenX = oneThirdScreenX;
   if (sentencePath.length === 1) {
-    // Ensure the initial sentence on the left is never clipped on the left edge
-    desiredRightScreenX = Math.max(oneThirdScreenX, Math.min(viewportCssWidth * 0.45, tipRightWorldX + 28));
+    desiredRightScreenX = Math.max(
+      oneThirdScreenX,
+      Math.min(viewportCssWidth * 0.45, tipRightWorldX + 28)
+    );
   }
 
   camera.targetZoom = 1.0;
   camera.targetX = desiredRightScreenX - tipRightWorldX + manualPanOffsetX;
   camera.targetY = viewportCssHeight * 0.5;
+}
+
+/**
+ * Outer Wilds / Nomai Inward Fractal Spiral Layout Engine.
+ * Wraps the sentence along a self-similar inward logarithmic spiral where scrolling
+ * rotates and zooms deeper into the spiral while available next-word choices branch
+ * off into curling child spirals.
+ */
+function recomputeSpiralTreeLayout() {
+  const root = treeNodes.get(rootNodeId);
+  if (!root) return;
+
+  // Split the initial prompt into individual words so the entire sentence curves word-by-word
+  const promptParts = String(root.display || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const lastPromptWord = promptParts.length > 0 ? promptParts[promptParts.length - 1] : root.display;
+  const rootWordSpan = root.domEl?.querySelector('.node-word-text');
+  if (rootWordSpan && rootWordSpan.textContent !== lastPromptWord) {
+    rootWordSpan.textContent = lastPromptWord;
+  }
+
+  // Ensure sentencePath only contains valid nodes in treeNodes
+  sentencePath = sentencePath.filter((id) => treeNodes.has(id));
+  if (sentencePath.length === 0) {
+    sentencePath = [rootNodeId];
+  }
+  selectedNodeId = sentencePath[sentencePath.length - 1];
+  const tipNode = treeNodes.get(selectedNodeId) || root;
+
+  // Ensure highlightedOptionId is a valid child of tipNode
+  const col1Nodes = tipNode.childrenIds.map((id) => treeNodes.get(id)).filter(Boolean);
+  if (col1Nodes.length > 0) {
+    if (!col1Nodes.some((n) => n.id === highlightedOptionId)) {
+      highlightedOptionId = col1Nodes[0].id;
+    }
+  } else {
+    highlightedOptionId = null;
+  }
+
+  const highlightedNode = highlightedOptionId ? treeNodes.get(highlightedOptionId) : null;
+  const col2Nodes = highlightedNode
+    ? highlightedNode.childrenIds.map((id) => treeNodes.get(id)).filter(Boolean)
+    : [];
+
+  const Rref = Math.max(165, Math.min(viewportCssWidth * 0.27, viewportCssHeight * 0.34));
+  currentSpiralRefRadius = Rref;
+  const spiralDecayK = 0.088;
+  const tipTheta = -0.60 * Math.PI; // ~10:15 o'clock — upper-left of the spiral center
+
+  const visibleSet = new Set();
+
+  // 1. Lay out the Sentence Developed Thus Far backwards from `tipNode` along the logarithmic spiral
+  let runningTheta = tipTheta;
+
+  for (let idx = sentencePath.length - 1; idx >= 0; idx--) {
+    const node = treeNodes.get(sentencePath[idx]);
+    if (!node || !node.domEl) continue;
+    visibleSet.add(node.id);
+
+    const isRoot = idx === 0;
+    const isTip = idx === sentencePath.length - 1;
+    node.visualRole = isRoot ? 'root' : isTip ? 'sentence-tip' : 'sentence-word';
+
+    node.domEl.className = `fractal-node-el ${
+      isRoot ? 'is-root' : isTip ? 'is-sentence-tip' : 'is-sentence-word'
+    }`;
+    node.domEl.style.setProperty('--node-box-h', '56px');
+    node.domEl.style.minWidth = '0px';
+
+    const w = getNodeWordWidth(node, 92);
+    const dThetaFromTip = runningTheta - tipTheta; // <= 0 for earlier words
+    const radius = Rref * Math.exp(-spiralDecayK * dThetaFromTip);
+    const scale = isTip
+      ? 1.06
+      : Math.max(0.42, Math.min(1.28, Math.exp(-0.062 * dThetaFromTip)));
+    const rotation = isTip ? -0.05 : Math.cos(runningTheta) * 0.30;
+
+    setNodeSpiralTarget(node, runningTheta, radius, scale, rotation);
+
+    // Also branch out unchosen sibling options at recent steps along the spiral!
+    if (idx < sentencePath.length - 1 && idx >= Math.max(0, sentencePath.length - 6)) {
+      const chosenChildId = sentencePath[idx + 1];
+      const unchosenSiblings = node.childrenIds
+        .filter((cid) => cid !== chosenChildId)
+        .slice(0, 2);
+
+      unchosenSiblings.forEach((sibId, sibIdx) => {
+        const sibNode = treeNodes.get(sibId);
+        if (!sibNode || !sibNode.domEl) return;
+        visibleSet.add(sibNode.id);
+        sibNode.visualRole = 'spiral-echo';
+        sibNode.domEl.className = 'fractal-node-el is-spiral-echo';
+        sibNode.domEl.style.setProperty('--node-box-h', '44px');
+        sibNode.domEl.style.minWidth = '0px';
+
+        const echoTheta = runningTheta + 0.24 + sibIdx * 0.24;
+        const echoRadius = radius * (1.20 + sibIdx * 0.14);
+        const echoScale = Math.max(0.38, Math.min(0.76, scale * (0.58 - sibIdx * 0.08)));
+        const echoRot = Math.cos(echoTheta) * 0.34 + 0.18;
+        setNodeSpiralTarget(sibNode, echoTheta, echoRadius, echoScale, echoRot);
+      });
+    }
+
+    const angularStep = Math.max(0.35, Math.min(0.56, (w + 32) / Rref));
+    runningTheta -= angularStep;
+  }
+
+  // 2. Lay out the preceding words of the initial prompt along the outer entry spiral
+  const prefixWords = promptParts.slice(0, -1);
+  const newPrefixTokens = [];
+  for (let pIdx = prefixWords.length - 1; pIdx >= 0; pIdx--) {
+    const wordText = prefixWords[pIdx];
+    const dThetaFromTip = runningTheta - tipTheta;
+    const radius = Rref * Math.exp(-spiralDecayK * dThetaFromTip);
+    const scale = Math.max(0.45, Math.min(1.26, Math.exp(-0.055 * dThetaFromTip)));
+    const rotation = Math.cos(runningTheta) * 0.28;
+
+    const prevToken = spiralPromptPrefixWords[pIdx];
+    newPrefixTokens[pIdx] = {
+      text: wordText,
+      targetTheta: runningTheta,
+      targetR: radius,
+      targetScale: scale,
+      targetRotation: rotation,
+      renderTheta: prevToken ? prevToken.renderTheta : runningTheta,
+      renderR: prevToken ? prevToken.renderR : radius,
+      renderScale: prevToken ? prevToken.renderScale : scale,
+      renderRotation: prevToken ? prevToken.renderRotation : rotation
+    };
+
+    const estW = Math.max(48, wordText.length * 14 + 28);
+    const angularStep = Math.max(0.32, Math.min(0.52, estW / Rref));
+    runningTheta -= angularStep;
+  }
+  spiralPromptPrefixWords = newPrefixTokens;
+
+  // 3. Lay out Column 1: Available Next-Word Choices branching off from the end of the current spiral
+  col1Nodes.forEach((opt, idx) => {
+    if (!opt.domEl) return;
+    visibleSet.add(opt.id);
+
+    const isHighlighted = opt.id === highlightedOptionId;
+    opt.visualRole = isHighlighted ? 'highlighted-option' : 'next-option';
+    opt.domEl.className = `fractal-node-el is-next-option${
+      isHighlighted ? ' is-highlighted-option' : ''
+    }`;
+    opt.domEl.style.setProperty('--node-box-h', '62px');
+
+    const optTheta = tipTheta + 0.56 + idx * 0.28;
+    const optRadius = Rref * (1.15 - idx * 0.115);
+    const optScale = isHighlighted ? 1.06 : 0.92;
+    const optRotation = (idx - (col1Nodes.length - 1) / 2) * 0.085;
+
+    setNodeSpiralTarget(opt, optTheta, optRadius, optScale, optRotation);
+  });
+
+  // 4. Lay out Column 2: Inner Child Spiral lookahead options curling toward the eye of the spiral
+  if (highlightedNode) {
+    const hTheta = highlightedNode.targetSpiralTheta ?? tipTheta + 0.65;
+    const hRadius = highlightedNode.targetSpiralR ?? Rref * 0.95;
+
+    col2Nodes.forEach((lookNode, idx) => {
+      if (!lookNode.domEl) return;
+      visibleSet.add(lookNode.id);
+
+      lookNode.visualRole = 'lookahead-option';
+      lookNode.domEl.className = 'fractal-node-el is-lookahead-option';
+      lookNode.domEl.style.setProperty('--node-box-h', '50px');
+
+      const lookTheta = hTheta + 0.48 + idx * 0.31;
+      const lookRadius = Math.max(52, hRadius * (0.64 - idx * 0.058));
+      const lookScale = Math.max(0.56, 0.78 - idx * 0.04);
+      const lookRot = (idx - (col2Nodes.length - 1) / 2) * 0.10;
+
+      setNodeSpiralTarget(lookNode, lookTheta, lookRadius, lookScale, lookRot);
+    });
+  }
+
+  // 5. Hide all other nodes
+  treeNodes.forEach((node) => {
+    if (!node.domEl) return;
+    if (!visibleSet.has(node.id)) {
+      node.visualRole = 'hidden';
+      node.domEl.className = 'fractal-node-el is-hidden-node';
+      if (supportsNativeHIC && typeof canvas.clearElementGeometry === 'function') {
+        try {
+          canvas.clearElementGeometry(node.domEl);
+        } catch (_e) {
+          // Ignore
+        }
+      }
+    }
+  });
+
+  lastTipRightWorldX = tipNode.targetX + 60;
+  lastCol2LeftWorldX = highlightedNode ? highlightedNode.targetX + 60 : 120;
+
+  // Center the spiral vortex in the viewport
+  camera.targetZoom = 1.0;
+  camera.targetX = viewportCssWidth * 0.47 + manualPanOffsetX;
+  camera.targetY = viewportCssHeight * 0.53;
 }
 
 /**
@@ -699,8 +977,8 @@ let panStartOffset = 0;
 
 /**
  * Given a pointer event inside `canvasViewport`, if the pointer is on the right side
- * (past the sentence developed so far), returns the Column 1 option whose vertical slot
- * is closest to the pointer's Y coordinate.
+ * (past the sentence developed so far), returns the Column 1 option whose slot
+ * is closest to the pointer's coordinates.
  */
 function findClosestOptionAtPointer(e) {
   const tipNode = treeNodes.get(selectedNodeId);
@@ -709,6 +987,28 @@ function findClosestOptionAtPointer(e) {
   const rect = canvasViewport.getBoundingClientRect();
   const localX = e.clientX - rect.left;
   const localY = e.clientY - rect.top;
+
+  if (renderMode === 'spiral') {
+    const tipScreenX = camera.x + tipNode.renderX * camera.zoom;
+    if (localX < tipScreenX - 25) {
+      return null;
+    }
+
+    let closestOpt = null;
+    let bestScore = Infinity;
+    tipNode.childrenIds.forEach((childId) => {
+      const opt = treeNodes.get(childId);
+      if (!opt) return;
+      const optScreenX = camera.x + opt.renderX * camera.zoom;
+      const optScreenY = camera.y + opt.renderY * camera.zoom;
+      const distScore = Math.hypot((localX - optScreenX) * 0.35, localY - optScreenY);
+      if (distScore < bestScore) {
+        bestScore = distScore;
+        closestOpt = opt;
+      }
+    });
+    return closestOpt;
+  }
 
   const tipRightScreenX = camera.x + lastTipRightWorldX * camera.zoom;
   if (localX < tipRightScreenX - 10) {
@@ -734,6 +1034,8 @@ function findClosestOptionAtPointer(e) {
 canvasViewport.addEventListener('pointerdown', (e) => {
   if (
     e.target.closest('.stage-controls-bar') ||
+    e.target.closest('.canvas-toolbar') ||
+    e.target.closest('.stage-top-right-controls') ||
     e.target.closest('.stage-Banner') ||
     e.target.closest('label') ||
     e.target.closest('input')
@@ -763,8 +1065,8 @@ window.addEventListener('pointermove', (e) => {
 canvasViewport.addEventListener('pointermove', (e) => {
   if (isDraggingCanvas) return;
 
-  // If hovering directly over a Column 2 lookahead word button, let its own hover handler preview it
-  const btn = e.target.closest?.('.fractal-node-el.is-lookahead-option');
+  // If hovering directly over a Column 2 lookahead or spiral echo button, let its own hover handler preview it
+  const btn = e.target.closest?.('.fractal-node-el.is-lookahead-option, .fractal-node-el.is-spiral-echo');
   if (btn && btn.dataset.nodeId) {
     return;
   }
@@ -783,6 +1085,8 @@ canvasViewport.addEventListener('click', (e) => {
   }
   if (
     e.target.closest('.stage-controls-bar') ||
+    e.target.closest('.canvas-toolbar') ||
+    e.target.closest('.stage-top-right-controls') ||
     e.target.closest('.stage-Banner') ||
     e.target.closest('.fractal-node-el')
   ) {
@@ -916,6 +1220,14 @@ btnStepForward?.addEventListener('click', () => {
 
 btnFitTree?.addEventListener('click', () => {
   selectNode(rootNodeId);
+});
+
+btnToggleRenderMode?.addEventListener('click', () => {
+  toggleRenderMode();
+});
+
+btnStageModeToggle?.addEventListener('click', () => {
+  toggleRenderMode();
 });
 
 // ============================================================================
@@ -1515,20 +1827,266 @@ loadStarterFractalSnapshot();
 // 9. CANVAS + HTML-IN-CANVAS RENDER LOOP (`onpaint` & `requestAnimationFrame`)
 // ============================================================================
 
+/**
+ * Renders the Outer Wilds / Nomai calligraphic inward spiral backbone,
+ * offshoot volute branches, and initial prompt prefix words on the 2D canvas.
+ */
+function drawNomaiSpiralCalligraphy(ctx) {
+  const tipNode = treeNodes.get(selectedNodeId);
+  if (!tipNode) return;
+
+  const Rref = currentSpiralRefRadius || 230;
+  const spiralDecayK = 0.088;
+  const tipTheta = tipNode.renderSpiralTheta ?? -0.60 * Math.PI;
+
+  ctx.save();
+
+  // 1. Subtle concentric astrolabe rings & vortex eye at the spiral center (0, 0)
+  const ringRadii = [Rref * 0.22, Rref * 0.45, Rref * 0.72, Rref * 1.0, Rref * 1.38];
+  ringRadii.forEach((r, idx) => {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.strokeStyle = idx === 3 ? 'rgba(139, 92, 246, 0.14)' : 'rgba(17, 17, 17, 0.055)';
+    ctx.lineWidth = idx === 3 ? 1.5 : 1;
+    if (idx % 2 === 1) {
+      ctx.setLineDash([4, 8]);
+    } else {
+      ctx.setLineDash([]);
+    }
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Inner fractal vortex spiral curl at the center (0, 0)
+  ctx.beginPath();
+  for (let t = tipTheta + 0.4; t <= tipTheta + Math.PI * 4.5; t += 0.08) {
+    const r = Rref * 0.65 * Math.exp(-0.14 * (t - tipTheta));
+    const x = r * Math.cos(t);
+    const y = r * Math.sin(t);
+    if (t === tipTheta + 0.4) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(139, 92, 246, 0.22)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 2. Main logarithmic spiral backbone from earliest prefix word to tipNode
+  let minTheta = tipTheta;
+  if (spiralPromptPrefixWords.length > 0) {
+    minTheta = spiralPromptPrefixWords[0].renderTheta ?? tipTheta - 2.0;
+  } else if (sentencePath.length > 0) {
+    const firstNode = treeNodes.get(sentencePath[0]);
+    if (firstNode && typeof firstNode.renderSpiralTheta === 'number') {
+      minTheta = firstNode.renderSpiralTheta;
+    }
+  }
+
+  // Outer ornamental entry tail before the first word
+  const tailStartTheta = minTheta - 0.75;
+  ctx.beginPath();
+  for (let t = tailStartTheta; t <= tipTheta; t += 0.04) {
+    const r = Rref * Math.exp(-spiralDecayK * (t - tipTheta));
+    const x = r * Math.cos(t);
+    const y = r * Math.sin(t);
+    if (t === tailStartTheta) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(17, 17, 17, 0.22)';
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Parallel inner Nomai calligraphic double-line accent along the active sentence spiral
+  const recentStartTheta = Math.max(tailStartTheta, tipTheta - Math.PI * 2.2);
+  ctx.beginPath();
+  for (let t = recentStartTheta; t <= tipTheta; t += 0.035) {
+    const r = Rref * Math.exp(-spiralDecayK * (t - tipTheta)) - 6;
+    const x = r * Math.cos(t);
+    const y = r * Math.sin(t);
+    if (t === recentStartTheta) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(124, 58, 237, 0.35)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // 3. Draw curling offshoot volutes for unchosen sibling echo words along the spiral
+  sentencePath.forEach((nodeId, idx) => {
+    if (idx >= sentencePath.length - 1) return;
+    const parentNode = treeNodes.get(nodeId);
+    if (!parentNode || typeof parentNode.renderSpiralTheta !== 'number') return;
+
+    const pTheta = parentNode.renderSpiralTheta;
+    const pR = parentNode.renderSpiralR;
+    const pX = pR * Math.cos(pTheta);
+    const pY = pR * Math.sin(pTheta);
+
+    parentNode.childrenIds.forEach((cid) => {
+      const sib = treeNodes.get(cid);
+      if (!sib || sib.visualRole !== 'spiral-echo') return;
+
+      const sTheta = sib.renderSpiralTheta;
+      const sR = sib.renderSpiralR;
+      const sX = sR * Math.cos(sTheta);
+      const sY = sR * Math.sin(sTheta);
+
+      const midTheta = (pTheta + sTheta) * 0.5;
+      const midR = (pR + sR) * 0.52;
+      const cpX = midR * Math.cos(midTheta);
+      const cpY = midR * Math.sin(midTheta);
+
+      ctx.beginPath();
+      ctx.moveTo(pX, pY);
+      ctx.quadraticCurveTo(cpX, cpY, sX, sY);
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.14)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      // Tiny Nomai spiral volute curl at the tip of the offshoot branch
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 1.65; a += 0.2) {
+        const vr = 9 * Math.exp(-0.28 * a);
+        const vx = sX + vr * Math.cos(sTheta + a);
+        const vy = sY + vr * Math.sin(sTheta + a);
+        if (a === 0) ctx.moveTo(vx, vy);
+        else ctx.lineTo(vx, vy);
+      }
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    });
+  });
+
+  // 4. Draw branching spiral tendrils from tipNode to each Column 1 next-word choice
+  const tipR = tipNode.renderSpiralR ?? Rref;
+  const tipX = tipR * Math.cos(tipTheta);
+  const tipY = tipR * Math.sin(tipTheta);
+
+  const col1Nodes = tipNode.childrenIds.map((id) => treeNodes.get(id)).filter(Boolean);
+  col1Nodes.forEach((opt) => {
+    if (opt.visualRole === 'hidden' || typeof opt.renderSpiralTheta !== 'number') return;
+    const isHighlighted = opt.id === highlightedOptionId;
+    const oTheta = opt.renderSpiralTheta;
+    const oR = opt.renderSpiralR;
+    const oX = oR * Math.cos(oTheta);
+    const oY = oR * Math.sin(oTheta);
+
+    const ctrlTheta = tipTheta + (oTheta - tipTheta) * 0.48;
+    const ctrlR = (tipR + oR) * 0.51;
+    const ctrlX = ctrlR * Math.cos(ctrlTheta);
+    const ctrlY = ctrlR * Math.sin(ctrlTheta);
+
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, oX, oY);
+    ctx.strokeStyle = isHighlighted ? 'rgba(124, 58, 237, 0.65)' : 'rgba(17, 17, 17, 0.16)';
+    ctx.lineWidth = isHighlighted ? 3.0 : 1.5;
+    ctx.stroke();
+
+    // Small decorative spiral curl on non-highlighted branches
+    if (!isHighlighted) {
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 1.4; a += 0.22) {
+        const vr = 11 * Math.exp(-0.26 * a);
+        const vx = oX + vr * Math.cos(oTheta + a);
+        const vy = oY + vr * Math.sin(oTheta + a);
+        if (a === 0) ctx.moveTo(vx, vy);
+        else ctx.lineTo(vx, vy);
+      }
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.14)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  });
+
+  // 5. Draw child spiral tendrils from highlightedNode into Column 2 lookahead options
+  const highlightedNode = highlightedOptionId ? treeNodes.get(highlightedOptionId) : null;
+  if (highlightedNode && typeof highlightedNode.renderSpiralTheta === 'number') {
+    const hTheta = highlightedNode.renderSpiralTheta;
+    const hR = highlightedNode.renderSpiralR;
+    const hX = hR * Math.cos(hTheta);
+    const hY = hR * Math.sin(hTheta);
+
+    const col2Nodes = highlightedNode.childrenIds.map((id) => treeNodes.get(id)).filter(Boolean);
+    col2Nodes.forEach((lookNode, idx) => {
+      if (lookNode.visualRole === 'hidden' || typeof lookNode.renderSpiralTheta !== 'number') return;
+      const lTheta = lookNode.renderSpiralTheta;
+      const lR = lookNode.renderSpiralR;
+      const lX = lR * Math.cos(lTheta);
+      const lY = lR * Math.sin(lTheta);
+
+      const ctrlTheta = hTheta + (lTheta - hTheta) * 0.5;
+      const ctrlR = (hR + lR) * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(hX, hY);
+      ctx.quadraticCurveTo(ctrlR * Math.cos(ctrlTheta), ctrlR * Math.sin(ctrlTheta), lX, lY);
+      ctx.strokeStyle = idx === 0 ? 'rgba(124, 58, 237, 0.35)' : 'rgba(17, 17, 17, 0.11)';
+      ctx.lineWidth = idx === 0 ? 1.8 : 1.1;
+      ctx.stroke();
+    });
+  }
+
+  // 6. Render preceding words of the initial prompt along the outer entry spiral
+  spiralPromptPrefixWords.forEach((token) => {
+    const px = token.renderR * Math.cos(token.renderTheta);
+    const py = token.renderR * Math.sin(token.renderTheta);
+    const dTheta = token.renderTheta - tipTheta;
+    const alpha = Math.max(0.18, Math.min(0.88, Math.exp(0.12 * dTheta)));
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(token.renderRotation || 0);
+    ctx.scale(token.renderScale || 1, token.renderScale || 1);
+    ctx.font = '800 28px "Syne", "Space Grotesk", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(17, 17, 17, ${alpha.toFixed(3)})`;
+    ctx.fillText(token.text, 0, 0);
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
 function drawFractalCanvasScene(_nowMs) {
-  // Smoothly interpolate camera pan
+  // Smoothly interpolate camera pan & zoom
   camera.x += (camera.targetX - camera.x) * 0.18;
   camera.y += (camera.targetY - camera.y) * 0.18;
   camera.zoom += (camera.targetZoom - camera.zoom) * 0.18;
 
-  // Smoothly interpolate visible node positions
+  // Smoothly interpolate prefix words in spiral mode
+  if (renderMode === 'spiral') {
+    spiralPromptPrefixWords.forEach((token) => {
+      token.renderTheta += (token.targetTheta - token.renderTheta) * 0.18;
+      token.renderR += (token.targetR - token.renderR) * 0.18;
+      token.renderScale += (token.targetScale - token.renderScale) * 0.18;
+      token.renderRotation += (token.targetRotation - token.renderRotation) * 0.18;
+    });
+  }
+
+  // Smoothly interpolate visible node positions (polar spiral vs linear cartesian)
   treeNodes.forEach((node) => {
     if (node.visualRole === 'hidden') return;
-    node.renderX += (node.targetX - node.renderX) * 0.18;
-    node.renderY += (node.targetY - node.renderY) * 0.18;
+    if (node.usePolarSpiral) {
+      node.renderSpiralTheta += (node.targetSpiralTheta - node.renderSpiralTheta) * 0.18;
+      node.renderSpiralR += (node.targetSpiralR - node.renderSpiralR) * 0.18;
+      node.renderScale += (node.targetScale - (node.renderScale ?? 1.0)) * 0.18;
+      node.renderRotation += (node.targetRotation - (node.renderRotation ?? 0)) * 0.18;
+
+      const w = getNodeWordWidth(node, 96);
+      const cx = node.renderSpiralR * Math.cos(node.renderSpiralTheta);
+      const cy = node.renderSpiralR * Math.sin(node.renderSpiralTheta);
+      node.renderX = cx - w / 2;
+      node.renderY = cy;
+    } else {
+      node.renderX += (node.targetX - node.renderX) * 0.18;
+      node.renderY += (node.targetY - node.renderY) * 0.18;
+      node.renderScale += (1.0 - (node.renderScale ?? 1.0)) * 0.18;
+      node.renderRotation += (0 - (node.renderRotation ?? 0)) * 0.18;
+    }
   });
 
-  // 1. Clear warm paper canvas (no connector lines or boxes — pure typographic focus)
+  // 1. Clear warm paper canvas
   ctx.save();
   ctx.setTransform(devicePixelScale, 0, 0, devicePixelScale, 0, 0);
   ctx.clearRect(0, 0, viewportCssWidth, viewportCssHeight);
@@ -1537,25 +2095,54 @@ function drawFractalCanvasScene(_nowMs) {
   ctx.translate(camera.x, camera.y);
   ctx.scale(camera.zoom, camera.zoom);
 
+  // In Outer Wilds / Nomai Spiral mode, render the swirling calligraphic spiral geometry
+  if (renderMode === 'spiral') {
+    drawNomaiSpiralCalligraphy(ctx);
+  }
+
   // 2. Draw & Sync HTML-in-Canvas Drawable Token Node Elements
   treeNodes.forEach((node) => {
     const el = node.domEl;
     if (!el || node.visualRole === 'hidden') return;
 
+    const w = el.offsetWidth || getNodeWordWidth(node, 96);
     const h = el.offsetHeight || 56;
     const worldLeft = node.renderX;
     const worldTop = node.renderY - h / 2;
+    const scale = node.renderScale ?? 1.0;
+    const rot = node.renderRotation ?? 0;
+    const hasTransform = Math.abs(scale - 1.0) > 0.005 || Math.abs(rot) > 0.005;
 
     if (supportsNativeHIC) {
       try {
-        ctx.drawElementImage(el, worldLeft, worldTop);
+        if (hasTransform) {
+          ctx.save();
+          ctx.translate(worldLeft + w / 2, node.renderY);
+          ctx.rotate(rot);
+          ctx.scale(scale, scale);
+          ctx.drawElementImage(el, -w / 2, -h / 2);
+          ctx.restore();
+        } else {
+          ctx.drawElementImage(el, worldLeft, worldTop);
+        }
       } catch (_err) {
         // Element may not have initial paint record yet; retry on next paint
       }
 
-      const canvasTransform = new DOMMatrix()
-        .translate(camera.x + worldLeft * camera.zoom, camera.y + worldTop * camera.zoom)
-        .scale(camera.zoom, camera.zoom);
+      let canvasTransform;
+      if (hasTransform) {
+        const cxWorld = worldLeft + w / 2;
+        const cyWorld = node.renderY;
+        canvasTransform = new DOMMatrix()
+          .translate(camera.x + cxWorld * camera.zoom, camera.y + cyWorld * camera.zoom)
+          .rotate((rot * 180) / Math.PI)
+          .scale(camera.zoom * scale, camera.zoom * scale)
+          .translate(-w / 2, -h / 2);
+      } else {
+        canvasTransform = new DOMMatrix()
+          .translate(camera.x + worldLeft * camera.zoom, camera.y + worldTop * camera.zoom)
+          .scale(camera.zoom, camera.zoom);
+      }
 
       canvas.updateElementGeometry(el, {
         canvasTransform,
@@ -1564,7 +2151,14 @@ function drawFractalCanvasScene(_nowMs) {
     } else {
       const screenX = camera.x + worldLeft * camera.zoom;
       const screenY = camera.y + worldTop * camera.zoom;
-      el.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;
+      if (hasTransform) {
+        const cxScreen = camera.x + (worldLeft + w / 2) * camera.zoom;
+        const cyScreen = camera.y + node.renderY * camera.zoom;
+        const rotDeg = (rot * 180) / Math.PI;
+        el.style.transform = `translate3d(${cxScreen.toFixed(1)}px, ${cyScreen.toFixed(1)}px, 0) rotate(${rotDeg.toFixed(2)}deg) scale(${(camera.zoom * scale).toFixed(3)}) translate3d(${(-w / 2).toFixed(1)}px, ${(-h / 2).toFixed(1)}px, 0)`;
+      } else {
+        el.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;
+      }
     }
   });
 
@@ -1591,8 +2185,22 @@ function drawFractalCanvasScene(_nowMs) {
           : 'Generating words…';
       }
 
-      const spinnerWorldX = isCol1Buffering ? lastTipRightWorldX + 52 : lastCol2LeftWorldX + 12;
-      const spinnerWorldY = isCol1Buffering ? 0 : highlightedNode.renderY || 0;
+      const spinnerWorldX =
+        renderMode === 'spiral'
+          ? isCol1Buffering
+            ? (tipNode?.renderX || 0) + 90
+            : (highlightedNode?.renderX || 0) + 70
+          : isCol1Buffering
+            ? lastTipRightWorldX + 52
+            : lastCol2LeftWorldX + 12;
+      const spinnerWorldY =
+        renderMode === 'spiral'
+          ? isCol1Buffering
+            ? (tipNode?.renderY || 0)
+            : (highlightedNode?.renderY || 0)
+          : isCol1Buffering
+            ? 0
+            : highlightedNode?.renderY || 0;
       const screenX = camera.x + spinnerWorldX * camera.zoom;
       const screenY = camera.y + spinnerWorldY * camera.zoom - 19;
       wordBufferSpinnerWrap.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;

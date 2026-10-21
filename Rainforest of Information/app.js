@@ -22,7 +22,8 @@ const vineNodeButtons = Array.from(document.querySelectorAll('.vine-node-btn'));
 // ============================================================================
 
 const supportsNativeHIC =
-  'content' in HTMLCanvasElement.prototype &&
+  ('content' in HTMLCanvasElement.prototype ||
+    'layoutSubtree' in HTMLCanvasElement.prototype) &&
   typeof canvas.captureElementImage === 'function';
 
 if (!supportsNativeHIC) {
@@ -89,6 +90,7 @@ function uploadElementWebGL(glContext, targetCanvas, texture, element, state) {
   const { width, height } = size;
 
   allocateElementTexture(glContext, texture, state, width, height);
+  glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, false);
   glContext.texElementSubImage2D(glContext.TEXTURE_2D, 0, 0, 0, element, { width, height });
   return true;
 }
@@ -1362,34 +1364,50 @@ const leafFragmentShader = /* glsl */ `
     vec3 litLeaf = leafAlbedo * (0.38 + NdotL * 0.82) * facetLightBoost + sssGlow + vec3(1.0, 0.95, 0.78) * (specular + dewGlint) + vec3(0.35, 0.85, 0.52) * fresnel * 0.25;
 
     // ========================================================================
-    // 5. MAP HTML-IN-CANVAS DOM TEXTURE DIRECTLY ONTO THE FOLDING 3D LEAF SURFACE
+    // 5. MAP HTML-IN-CANVAS DOM TEXTURE WITH 3D BOTANICAL EMBOSS & VEIN SHADER
     // ========================================================================
     // Map the DOM content cleanly across the broad central leaf blade (u: 0.12..0.75, vNorm: 0.15..0.85)
     // Because the vertex shader folds the vertices of this surface piece-by-piece, the DOM texture
     // automatically creases, pleats, and blooms open along every diagonal petal hinge!
     float domU = uSide > 0.1 ? (1.0 - u) : u;
+    float domStartU = uSide > 0.1 ? 0.24 : 0.14;
     vec2 domUv = vec2(
-      (domU - 0.12) / 0.63,
-      (vUv.y - 0.15) / 0.70
+      (domU - domStartU) / 0.62,
+      (vUv.y - 0.16) / 0.68
     );
 
     if (domUv.x >= 0.0 && domUv.x <= 1.0 && domUv.y >= 0.0 && domUv.y <= 1.0) {
       vec2 sampleUv = vec2(domUv.x, mix(domUv.y, 1.0 - domUv.y, uFlipY));
       vec4 hSample = texture2D(uHtmlTexture, sampleUv);
       vec4 fSample = texture2D(uFallbackTexture, domUv);
-      vec4 domSample = hSample.a > 0.01 ? hSample : fSample;
+      vec4 domSample = uFlipY > 0.5 ? hSample : fSample;
 
       // Soft organic feathering around the DOM region so it blends seamlessly into the leaf blade
       vec2 edgeFadeVec = smoothstep(vec2(0.0), vec2(0.03), domUv) * (vec2(1.0) - smoothstep(vec2(0.97), vec2(1.0), domUv));
       float domEdgeMask = edgeFadeVec.x * edgeFadeVec.y;
       float alpha = clamp(domSample.a * domEdgeMask, 0.0, 1.0);
 
-      vec3 domColor = hSample.a > 0.01 ? (domSample.rgb / max(0.18, domSample.a)) : domSample.rgb;
+      vec3 domColor = uFlipY > 0.5 ? (domSample.rgb / max(0.18, domSample.a)) : domSample.rgb;
       if (isAdaxialSurface) {
-        // Shade the DOM content with the 3D origami facet lighting & glowing crease lines so you
-        // can clearly see each folded panel of text catching the light as it unfolds!
-        vec3 shadedDom = domColor * (0.88 + NdotL * 0.22) * facetLightBoost + vec3(1.0, 0.96, 0.82) * (specular * 0.28 + vOrigamiCrease * 0.26) + veinColor * secVeinMask * 0.06;
-        litLeaf = mix(litLeaf * (1.0 - alpha * 0.45), shadedDom, alpha);
+        // 3D Botanical Cuticle Emboss & Leaf-Vein Inlay Shader Effect:
+        // Compute screen-space gradients of the DOM glyph alpha so every character and button looks
+        // physically pressed/etched into the waxy leaf cuticle!
+        float dAx = dFdx(alpha);
+        float dAy = dFdy(alpha);
+        float embossBevel = clamp((-dAx * 0.75 + dAy * 0.85) * 1.9, -0.45, 0.65);
+
+        // Infuse the text pigment with subtle cellular leaf reticulation & secondary vein luminescence
+        float bioGrain = 0.90 + 0.10 * tertVeinNoise + secVeinMask * 0.14 + midribMask * 0.10;
+        vec3 botanicalTint = mix(vec3(0.90, 1.0, 0.93), vec3(1.0, 0.98, 0.86), secVeinMask * 0.6 + vOrigamiCrease * 0.5);
+        vec3 inlaidText = domColor * botanicalTint * bioGrain * (0.86 + NdotL * 0.26) * facetLightBoost;
+        inlaidText += vec3(0.75, 1.0, 0.80) * max(0.0, embossBevel) * 0.42;
+        inlaidText += vec3(1.0, 0.96, 0.82) * (specular * 0.32 + vOrigamiCrease * 0.28);
+
+        // Darken the leaf cuticle slightly in the recessed groove right around the etched glyphs
+        float cuticleRecess = smoothstep(0.02, 0.48, alpha) * (1.0 - smoothstep(0.55, 0.95, alpha));
+        vec3 recessedLeaf = litLeaf * (1.0 - cuticleRecess * 0.35 + min(0.0, embossBevel) * 0.38);
+
+        litLeaf = mix(recessedLeaf, inlaidText, alpha);
       } else {
         // Subtle reverse-printed chlorophyll translucency visible through the back of folded petals!
         litLeaf = mix(litLeaf, domColor * vec3(0.48, 0.88, 0.55) * 0.68, alpha * 0.45);
@@ -1439,13 +1457,6 @@ const leafFragmentShader = /* glsl */ `
 // 8. LIVE HIGH-DPI DOM-TO-3D-LEAF TEXTURE COMPOSITOR & INTERACTIVE HIT REGIONS
 // ============================================================================
 
-/**
- * Renders the live state of each `<article class="hic-leaf-card">` directly onto
- * its 3D Leaf `CanvasTexture` (`1400 x 960`) and records normalized UV hit-boxes
- * for every interactive button, radio option, quiz choice, and text `<input>`!
- * This guarantees that the DOM content is 100% part of the 3D leaf texture and
- * warps/unfolds vertex-by-vertex with the 3D leaf model!
- */
 const LEAF_TEX_W = 1400;
 const LEAF_TEX_H = 960;
 
@@ -1464,43 +1475,37 @@ let newsletterErrorMsg = '';
 
 const QUIZ_QUESTIONS = [
   {
-    prompt:
-      'Q1 of 3: Why do hundreds of Amazonian macaws and parrots gather at riverbanks to eat literal clay?',
+    prompt: 'Q1: Why do Amazonian macaws flock to riverbanks to eat clay?',
     choices: [
-      'They lost a high-stakes bet with a keel-billed toucan',
-      'Clay minerals bind & neutralize deadly toxins in unripe seeds (plus supply scarce dietary sodium!)',
-      'To weigh themselves down so canopy updrafts don’t blow them over the Andes',
-      'To polish their beaks into mirror finishes before mating season'
+      'Lost a bet with a toucan',
+      'Neutralizes seed toxins & adds sodium',
+      'Ballast against canopy wind',
+      'Polishes their beaks'
     ],
     correctIndex: 1,
-    explanation:
-      '✅ Correct! Clay acts like natural Kaopectate in the parrots’ guts, neutralizing seed alkaloids while providing essential sodium!'
+    explanation: '✅ Correct! Clay binds toxic seed alkaloids and supplies vital dietary sodium.'
   },
   {
-    prompt:
-      'Q2 of 3: What does the Ophiocordyceps “Zombie Ant” fungus force an infected ant to do before sprouting?',
+    prompt: 'Q2: What does the Zombie Ant fungus force an ant to do before sprouting?',
     choices: [
-      'File its colony taxes six months late',
-      'Climb to the exact 25 cm height & 94% humidity beneath a leaf and lock its jaws into the main vein',
-      'Challenge the colony queen to a rhythmic antenna duel',
-      'Swim across the Amazon River doing the backstroke'
+      'File colony taxes late',
+      'Clamp jaws into a leaf vein 25 cm high',
+      'Duel the colony queen',
+      'Backstroke the Amazon'
     ],
     correctIndex: 1,
-    explanation:
-      '✅ Spot on! The fungus hijacks the ant’s muscle fibers directly, locking its mandibles into a leaf vein right above its home trail!'
+    explanation: '✅ Spot on! It locks the ant’s jaws into a leaf vein right above its foraging trail.'
   },
   {
-    prompt:
-      'Q3 of 3: How much fresh water do Amazon rainforest trees pump into the sky EVERY DAY (“Flying Rivers”)?',
+    prompt: 'Q3: How much water do Amazon trees pump into the sky daily (“Flying Rivers”)?',
     choices: [
-      'Roughly 3 Olympic swimming pools of mist',
-      'Around 20 BILLION metric tons per day — more water than the Amazon River dumps into the Atlantic!',
-      'Just enough humidity to ruin a three-toed sloth’s hair day',
-      'About 450,000 gallons'
+      '3 Olympic pools of mist',
+      '20 BILLION metric tons per day',
+      'Enough to frizz sloth fur',
+      '450,000 gallons'
     ],
     correctIndex: 1,
-    explanation:
-      '✅ Incredible but true! Transpiring trees create “Flying Rivers” of 20 billion tons of vapor daily that water crops across South America!'
+    explanation: '✅ True! 20 billion tons daily—more water than the Amazon River dumps into the sea!'
   }
 ];
 let currentQuizIndex = 0;
@@ -1513,8 +1518,7 @@ let leaf6BurnProgress = 0.0;
 
 let activeOrchidCount = 12;
 const pledgedSet = new Set();
-let finaleStatusMsg =
-  '✨ Click any conservation pledge on this leaf to bloom 3D bioluminescent orchids onto the braided vines!';
+let finaleStatusMsg = '✨ Click any pledge above to bloom 3D orchids onto the braided vines.';
 
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
   const words = String(text).split(' ');
@@ -3031,6 +3035,20 @@ newsletterForm?.addEventListener('submit', (e) => {
   handleNewsletterSubmit();
 });
 
+let forceActiveLeafTextureUpload = false;
+
+function requestActiveLeafRepaint() {
+  forceActiveLeafTextureUpload = true;
+  if (typeof canvas.requestPaint === 'function') {
+    canvas.requestPaint();
+  }
+}
+
+// Immediately repaint and re-upload the 3D leaf texture whenever the user selects text on a leaf!
+document.addEventListener('selectionchange', () => {
+  requestActiveLeafRepaint();
+});
+
 function syncQuizDOM() {
   const q = QUIZ_QUESTIONS[currentQuizIndex];
   const score = quizUserAnswers.reduce(
@@ -3041,8 +3059,16 @@ function syncQuizDOM() {
   if (progressText) progressText.textContent = `Question ${currentQuizIndex + 1} of ${QUIZ_QUESTIONS.length}`;
   const scoreBadge = document.getElementById('quiz-score-badge');
   if (scoreBadge) scoreBadge.textContent = `Score: ${score} / ${QUIZ_QUESTIONS.length}`;
-  const qPrompt = document.getElementById('quiz-question-prompt');
+  const qPrompt =
+    document.getElementById('quiz-prompt-text') ||
+    document.getElementById('quiz-question-prompt');
   if (qPrompt) qPrompt.textContent = q.prompt;
+
+  document.querySelectorAll('.quiz-tab-btn').forEach((tabBtn, idx) => {
+    const isCur = idx === currentQuizIndex;
+    tabBtn.classList.toggle('is-active', isCur);
+    tabBtn.setAttribute('aria-selected', isCur ? 'true' : 'false');
+  });
 
   const userAns = quizUserAnswers[currentQuizIndex];
   document.querySelectorAll('.quiz-choice-btn').forEach((btn, idx) => {
@@ -3059,9 +3085,10 @@ function syncQuizDOM() {
   if (explainEl) {
     explainEl.textContent =
       userAns !== null
-        ? `${userAns === q.correctIndex ? '✅ Spot on! ' : '❌ Not quite! '}${q.explanation}`
-        : 'Select one of the four leaf-vein options above to test your rainforest survival instincts.';
+        ? `${userAns === q.correctIndex ? '' : '❌ Not quite! '}${q.explanation}`
+        : 'Click an option above to test your rainforest survival instincts.';
   }
+  requestActiveLeafRepaint();
 }
 
 function bloomMoreCanopyOrchids(kind, message) {
@@ -3080,6 +3107,7 @@ function bloomMoreCanopyOrchids(kind, message) {
     }
   });
   triggerSporeBurst();
+  requestActiveLeafRepaint();
 }
 
 function executeLeafAction(hitRegion) {
@@ -3098,14 +3126,14 @@ function executeLeafAction(hitRegion) {
     slothPooCount++;
     const fb = document.getElementById('sloth-dance-feedback');
     if (fb) {
-      fb.textContent = `🕺 Poo Dance #${slothPooCount} complete! 84 sloth moths cheered and fertilized the tree roots!`;
+      fb.textContent = `🕺 Poo Dance #${slothPooCount} (-33% weight) • Moths: ${124 + slothPooCount * 38}`;
     }
     triggerSporeBurst();
   } else if (id === 'btn-detonate-pod') {
     podDetonations++;
     const fb = document.getElementById('pod-blast-feedback');
     if (fb) {
-      fb.textContent = `💥 CRACK! Detonation #${podDetonations}: 14 seeds launched at 160 MPH (${(18 + (podDetonations % 5) * 4).toFixed(1)}m)!`;
+      fb.textContent = `💥 BOOM #${podDetonations}: Flung ${(18 + (podDetonations % 5) * 4).toFixed(1)}m at 160 MPH!`;
     }
     triggerSporeBurst();
   } else if (id === 'btn-shake-decoy') {
@@ -3113,14 +3141,14 @@ function executeLeafAction(hitRegion) {
     pihaCallTriggered = false;
     const fb = document.getElementById('spider-decoy-feedback');
     if (fb) {
-      fb.textContent = `🕸️ Twitch #${decoyShakes}: The 1-inch false spider puppet wiggled its 8 silk legs—predator fooled!`;
+      fb.textContent = `🕸️ Decoy Active • Wasps Fooled: ${decoyShakes}`;
     }
     triggerSporeBurst();
   } else if (id === 'btn-piha-call') {
     pihaCallTriggered = true;
     const fb = document.getElementById('spider-decoy-feedback');
     if (fb) {
-      fb.textContent = '📢 FWEEEE-OOOH! 116 dB shockwave rippled through the canopy!';
+      fb.textContent = '📢 FWEEEE-OOOH! 116 dB shockwave blasted!';
     }
     triggerSporeBurst();
   } else if (id === 'input-explorer-name') {
@@ -3166,17 +3194,17 @@ function executeLeafAction(hitRegion) {
   } else if (id === 'pledge-indigenous') {
     bloomMoreCanopyOrchids(
       'indigenous',
-      '🌺 Pledge Recorded: Supporting Indigenous Land Stewardship! New 3D orchids bloomed on the braided vines!'
+      '🌺 Pledged: Indigenous Land Stewardship! New 3D orchids bloomed!'
     );
   } else if (id === 'pledge-reserve') {
     bloomMoreCanopyOrchids(
       'reserve',
-      '🌺 Pledge Recorded: Locking in Permanent Rainforest Corridors! The braided central vines glow brighter!'
+      '🌺 Pledged: Permanent Rainforest Corridors! Central vines glow brighter!'
     );
   } else if (id === 'pledge-supply') {
     bloomMoreCanopyOrchids(
       'supply',
-      '🌺 Pledge Recorded: Deforestation-Free Supply Chain Action! Watch the living vine letters blossom!'
+      '🌺 Pledged: Deforestation-Free Action! Watch the vine letters blossom!'
     );
   } else if (id === 'btn-bloom-all') {
     pledgedSet.add('indigenous');
@@ -3184,16 +3212,14 @@ function executeLeafAction(hitRegion) {
     pledgedSet.add('supply');
     bloomMoreCanopyOrchids(
       null,
-      '🌸 Full Canopy of Hope Awakened! All 3D bioluminescent orchids are in full bloom across the intertwined vines!'
+      '🌸 Full Canopy of Hope Awakened! All 3D orchids are in full bloom!'
     );
   }
 
-  if (typeof canvas.requestPaint === 'function') {
-    canvas.requestPaint();
-  }
+  requestActiveLeafRepaint();
 }
 
-// Also wire up the underlying DOM buttons so clicking via screen reader / keyboard / DOM overlay works identically!
+// Wire up the underlying DOM buttons & controls so native HTML-in-Canvas hit-testing works directly!
 document.getElementById('btn-start-descent')?.addEventListener('click', () => executeLeafAction({ id: 'btn-start-descent' }));
 document.getElementById('btn-pulse-spores')?.addEventListener('click', () => executeLeafAction({ id: 'btn-pulse-spores' }));
 document.getElementById('btn-sloth-dance')?.addEventListener('click', () => executeLeafAction({ id: 'btn-sloth-dance' }));
@@ -3206,10 +3232,33 @@ document.getElementById('btn-quiz-next')?.addEventListener('click', () => execut
 document.getElementById('btn-quiz-reset')?.addEventListener('click', () => executeLeafAction({ id: 'btn-quiz-reset' }));
 document.getElementById('btn-bloom-all')?.addEventListener('click', () => executeLeafAction({ id: 'btn-bloom-all' }));
 
+document.querySelectorAll('.btn-leaf-step').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const targetStep = Number(btn.dataset.jump || 0);
+    scrollToStep(targetStep);
+  });
+});
+
+document.querySelectorAll('.quiz-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const qIdx = Number(btn.dataset.qindex ?? btn.dataset.q ?? 0);
+    executeLeafAction({ id: `quiz-tab-${qIdx}` });
+  });
+});
+
 document.querySelectorAll('.quiz-choice-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const cIdx = Number(btn.dataset.choice || 0);
     executeLeafAction({ id: `quiz-choice-${cIdx}`, choiceIdx: cIdx });
+  });
+});
+
+document.querySelectorAll('input[name="courier"]').forEach((radio) => {
+  radio.addEventListener('change', () => {
+    if (radio.checked) {
+      selectedCourier = radio.value;
+      requestActiveLeafRepaint();
+    }
   });
 });
 
@@ -3232,7 +3281,7 @@ document.getElementById('btn-open-arch-modal')?.addEventListener('click', () => 
   }
 });
 
-// 3D Raycaster UV Hit-Testing on the Sculpted 3D Leaf Surface
+// 3D Raycaster UV Hit-Testing on the Sculpted 3D Leaf Surface (Fallback when !supportsNativeHIC)
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2(0, 0);
 const pointerNorm = new THREE.Vector2(0.5, 0.5);
@@ -3274,28 +3323,43 @@ window.addEventListener('pointermove', (e) => {
   pointerNorm.x = e.clientX / Math.max(1, window.innerWidth);
   pointerNorm.y = 1.0 - e.clientY / Math.max(1, window.innerHeight);
 
-  const hit = findLeafHitRegionAtPointer(e.clientX, e.clientY);
-  hoveredHitId = hit ? hit.id : null;
-  if (hit) {
-    canvas.style.cursor = hit.id.startsWith('input-') ? 'text' : 'pointer';
-  } else {
-    canvas.style.cursor = 'default';
+  if (!supportsNativeHIC) {
+    const hit = findLeafHitRegionAtPointer(e.clientX, e.clientY);
+    hoveredHitId = hit ? hit.id : null;
+    if (hit) {
+      canvas.style.cursor = hit.id.startsWith('input-') ? 'text' : 'pointer';
+    } else {
+      canvas.style.cursor = 'default';
+    }
+  } else if (e.buttons === 1) {
+    // Repaint while dragging a text selection across the 3D leaf
+    requestActiveLeafRepaint();
+  }
+});
+
+window.addEventListener('pointerup', () => {
+  if (supportsNativeHIC) {
+    requestActiveLeafRepaint();
   }
 });
 
 window.addEventListener('pointerdown', (e) => {
   // Ignore clicks inside the top HUD or modal dialog
   if (e.target.closest?.('.canopy-hud') || e.target.closest?.('.arch-dialog')) return;
-  const hit = findLeafHitRegionAtPointer(e.clientX, e.clientY);
-  if (hit) {
-    executeLeafAction(hit);
+  if (!supportsNativeHIC) {
+    const hit = findLeafHitRegionAtPointer(e.clientX, e.clientY);
+    if (hit) {
+      executeLeafAction(hit);
+    } else {
+      focusedInputId = null;
+    }
   } else {
-    focusedInputId = null;
+    requestActiveLeafRepaint();
   }
 });
 
 // ============================================================================
-// 13. SCROLL TRACKING & 3D LEAF UNFOLDING ANIMATION LOOP
+// 13. SCROLL TRACKING, 3D ORIGAMI VERTEX EVALUATOR & HIT-TEST GEOMETRY SYNC
 // ============================================================================
 
 let targetScrollStep = 0;
@@ -3304,13 +3368,7 @@ let smoothScrollStep = 0;
 function updateScrollPosition() {
   const vh = Math.max(1, window.innerHeight);
   const rawStep = Math.max(0, Math.min(TOTAL_STEPS, window.scrollY / vh));
-  const nearestInt = Math.round(rawStep);
-
-  if (Math.abs(rawStep - nearestInt) < 0.085) {
-    targetScrollStep = nearestInt;
-  } else {
-    targetScrollStep = rawStep;
-  }
+  targetScrollStep = rawStep;
 
   const progress = targetScrollStep / TOTAL_STEPS;
   document.documentElement.style.setProperty('--scroll-progress', progress.toFixed(4));
@@ -3324,6 +3382,221 @@ const tempViewProjMatrix = new THREE.Matrix4();
 const tempDomRegionMatrix = new THREE.Matrix4();
 const tempLeafWorldDomMatrix = new THREE.Matrix4();
 
+const _evalAxis = new THREE.Vector3();
+const _evalPivot = new THREE.Vector3();
+const _pCenter = new THREE.Vector3();
+const _pLeft = new THREE.Vector3();
+const _pRight = new THREE.Vector3();
+const _pBottom = new THREE.Vector3();
+const _pTop = new THREE.Vector3();
+const _colX = new THREE.Vector3();
+const _colY = new THREE.Vector3();
+const _colZ = new THREE.Vector3();
+const _origin = new THREE.Vector3();
+
+function applyOrigamiPetalHingeJS(
+  pos,
+  pos0X,
+  pos0Y,
+  absV,
+  pivotX,
+  pivotY,
+  axisX,
+  axisY,
+  normX,
+  normY,
+  maxAngle,
+  localFold,
+  hingeWidth
+) {
+  const d = (pos0X - pivotX) * normX + (pos0Y - pivotY) * normY;
+  if (d > -hingeWidth && localFold > 0.0005) {
+    const midribSafe = smoothstepJS(0.0, 0.20, absV);
+    const w = smoothstepJS(0.0, hingeWidth, d) * midribSafe;
+    const ang = maxAngle * localFold * w;
+    _evalPivot.set(pivotX, pivotY, 0.0);
+    _evalAxis.set(axisX, axisY, 0.0).normalize();
+    pos.sub(_evalPivot).applyAxisAngle(_evalAxis, ang).add(_evalPivot);
+  }
+}
+
+/**
+ * Evaluates the exact 3D vertex position of any `(u, vNorm)` point on the sculpted leaf
+ * at the given `(unfold, foldDir, side, timeSec)`, matching `leafVertexShader` step-for-step.
+ * This allows `syncInvisibleDOMHitLayer` to update `canvasTransform` dynamically at every
+ * intermediate unfolding and refolding step so text on the leaf is always selectable!
+ */
+function evaluateLeafPoint3D(u, vNorm, unfold, foldDir, side, timeSec, outVec) {
+  const v = (vNorm - 0.5) * 2.0;
+  const absV = Math.abs(v);
+  const sideSign = v >= 0.0 ? 1.0 : -1.0;
+
+  const dripHookY = -Math.pow(Math.max(0.0, u - 0.78) / 0.22, 2.0) * 0.16;
+  const pos0X = (u - 0.5) * 7.55;
+  const pos0Y = v * 2.52 + dripHookY;
+
+  const midribRidge = Math.exp(-absV * 24.0) * (1.0 - u * 0.78) * 0.13;
+  const veinCoord0 = u * 9.5 - Math.pow(absV, 1.22) * 1.85;
+  const veinWave = Math.cos(veinCoord0 * Math.PI * 2.0);
+  const lateralVeinRib =
+    Math.pow(Math.max(0.0, veinWave), 6.0) * 0.048 * (1.0 - absV * 0.35) * (1.0 - u * 0.28);
+  const bullatePillow =
+    Math.max(0.0, -veinWave) * 0.058 * Math.sin(absV * Math.PI) * (1.0 - u * 0.22);
+  const dihedralZ = Math.pow(absV, 1.35) * 0.24;
+  const longitudinalArch = -Math.pow(u - 0.44, 2.0) * 0.36;
+  const edgeRuffleZ =
+    Math.sin(u * 22.0 + (v > 0 ? 0.0 : 1.5)) * 0.055 * smoothstepJS(0.62, 1.0, absV);
+
+  const pos0Z =
+    midribRidge + lateralVeinRib + bullatePillow + dihedralZ + longitudinalArch + edgeRuffleZ;
+  outVec.set(pos0X, pos0Y, pos0Z);
+
+  const fold = Math.max(0.0, Math.min(1.0, 1.0 - unfold));
+  if (fold > 0.0005) {
+    const dirU = foldDir > 0.0 ? 1.0 - u : u;
+    const midribSafe = smoothstepJS(0.0, 0.20, absV);
+    const veinCoord = u * 7.5 - Math.pow(absV, 1.12) * 2.15;
+
+    // Stage 1: Diagonal Miura-ori vein pleats & foreshortening
+    const pleatLocalFold = smoothstepJS(0.0, 0.85, fold * (0.68 + 0.32 * dirU));
+    const pleatPhase = veinCoord * Math.PI;
+    const triWave =
+      Math.asin(Math.max(-1.0, Math.min(1.0, Math.sin(pleatPhase) * 0.985))) * (2.0 / Math.PI);
+    outVec.z += triWave * 0.26 * pleatLocalFold * midribSafe;
+    const foreshorten = (1.0 - Math.cos(pleatLocalFold * 1.05)) * 0.34 * midribSafe;
+    outVec.x -= u * 7.55 * foreshorten * 0.45;
+    outVec.y -= v * 2.52 * foreshorten * 0.28;
+
+    // Stage 2: Radial flower-petal hinges
+    const p1Phase = foldDir > 0.0 ? 0.02 : 0.26;
+    let p1Fold = Math.max(0.0, Math.min(1.0, (fold - p1Phase) / 0.65));
+    p1Fold = p1Fold * p1Fold * (3.0 - 2.0 * p1Fold);
+    const p1Nx = 0.52 / Math.hypot(0.52, 0.854);
+    const p1Ny = (sideSign * 0.854) / Math.hypot(0.52, 0.854);
+    applyOrigamiPetalHingeJS(
+      outVec,
+      pos0X,
+      pos0Y,
+      absV,
+      0.55,
+      sideSign * 1.18,
+      -sideSign * p1Ny,
+      sideSign * p1Nx,
+      p1Nx,
+      p1Ny,
+      1.48,
+      p1Fold,
+      0.32
+    );
+
+    const p2Phase = foldDir > 0.0 ? 0.22 : 0.06;
+    let p2Fold = Math.max(0.0, Math.min(1.0, (fold - p2Phase) / 0.68));
+    p2Fold = p2Fold * p2Fold * (3.0 - 2.0 * p2Fold);
+    const p2Nx = -0.48 / Math.hypot(-0.48, 0.877);
+    const p2Ny = (sideSign * 0.877) / Math.hypot(-0.48, 0.877);
+    applyOrigamiPetalHingeJS(
+      outVec,
+      pos0X,
+      pos0Y,
+      absV,
+      -0.65,
+      sideSign * 1.15,
+      -sideSign * p2Ny,
+      sideSign * p2Nx,
+      p2Nx,
+      p2Ny,
+      1.42,
+      p2Fold,
+      0.32
+    );
+
+    let p3Fold = Math.max(0.0, Math.min(1.0, (fold - 0.14) / 0.72));
+    p3Fold = p3Fold * p3Fold * (3.0 - 2.0 * p3Fold);
+    const p3Nx = 0.24 / Math.hypot(0.24, 0.971);
+    const p3Ny = (sideSign * 0.971) / Math.hypot(0.24, 0.971);
+    applyOrigamiPetalHingeJS(
+      outVec,
+      pos0X,
+      pos0Y,
+      absV,
+      -0.15,
+      sideSign * 0.72,
+      -sideSign * p3Ny,
+      sideSign * p3Nx,
+      p3Nx,
+      p3Ny,
+      -1.24,
+      p3Fold,
+      0.34
+    );
+
+    let p4Fold = Math.max(0.0, Math.min(1.0, (fold - 0.18) / 0.78));
+    p4Fold = p4Fold * p4Fold * (3.0 - 2.0 * p4Fold);
+    const p4Nx = 0.16 / Math.hypot(0.16, 0.987);
+    const p4Ny = (sideSign * 0.987) / Math.hypot(0.16, 0.987);
+    applyOrigamiPetalHingeJS(
+      outVec,
+      pos0X,
+      pos0Y,
+      absV,
+      -0.45,
+      sideSign * 0.32,
+      -sideSign * p4Ny,
+      sideSign * p4Nx,
+      p4Nx,
+      p4Ny,
+      1.32,
+      p4Fold,
+      0.34
+    );
+
+    // Stage 3: 5-segment piecewise origami spine & petal bloom chain
+    for (let seg = 4; seg >= 0; seg--) {
+      const orderIdx = foldDir > 0.0 ? seg : 4 - seg;
+      const segStart = orderIdx * 0.12;
+      const segFold = Math.max(0.0, Math.min(1.0, (fold - segStart) / (1.0 - 4.0 * 0.12)));
+      const segEase = segFold * segFold * (3.0 - 2.0 * segFold);
+
+      const hingeU = 0.14 + seg * 0.155;
+      const hingeX = (hingeU - 0.5) * 7.55;
+      const chevronOffset = absV * absV * 0.65;
+      const dLong = pos0X - hingeX + chevronOffset;
+
+      if (dLong > 0.0) {
+        const wSeg = smoothstepJS(0.0, 0.32, dLong);
+        const altPitch = (seg % 2 === 0 ? 0.52 : -0.24) + 0.22;
+        const pitchAng = -segEase * altPitch * wSeg;
+        const sweepAng = segEase * 0.18 * -foldDir * wSeg;
+
+        _evalPivot.set(hingeX, 0.0, 0.0);
+        outVec.sub(_evalPivot);
+        _evalAxis.set(0.0, 1.0, 0.0);
+        outVec.applyAxisAngle(_evalAxis, pitchAng);
+        _evalAxis.set(0.0, 0.0, 1.0);
+        outVec.applyAxisAngle(_evalAxis, sweepAng);
+        outVec.add(_evalPivot);
+      }
+    }
+  }
+
+  if (side > 0.1) {
+    outVec.x = -outVec.x;
+  }
+
+  // Wind sway
+  outVec.z += Math.sin(timeSec * 1.85 + u * 3.4 + v * 1.6) * (0.03 + u * 0.065) * unfold;
+  outVec.y += Math.cos(timeSec * 1.4 + u * 2.5) * 0.025 * u * unfold;
+  return outVec;
+}
+
+function evaluateDomQuadPoint3D(qx, qy, unfold, foldDir, side, timeSec, outVec) {
+  const domStartU = side > 0.1 ? 0.24 : 0.14;
+  const domU = domStartU + (qx + 0.5) * 0.62;
+  const u = side > 0.1 ? 1.0 - domU : domU;
+  const vNorm = 0.50 + qy * 0.68;
+  return evaluateLeafPoint3D(u, vNorm, unfold, foldDir, side, timeSec, outVec);
+}
+
 function bindNativeHICTextureToThree(node) {
   const texProps = renderer.properties.get(node.nativeThreeTexture);
   texProps.__webglTexture = node.nativeGLTexture;
@@ -3332,7 +3605,7 @@ function bindNativeHICTextureToThree(node) {
   node.leafShaderMat.uniforms.uFlipY.value = 1.0;
 }
 
-function syncInvisibleDOMHitLayer(node, unfoldProgress) {
+function syncInvisibleDOMHitLayer(node, unfoldProgress, foldDir = -1.0, timeSec = 0.0) {
   const element = node.domCard;
   if (!element) return;
 
@@ -3346,14 +3619,39 @@ function syncInvisibleDOMHitLayer(node, unfoldProgress) {
   }
 
   element.removeAttribute('inert');
-  element.style.pointerEvents = unfoldProgress >= 0.72 ? 'auto' : 'none';
+  element.style.pointerEvents = 'auto';
 
   node.leafMesh.updateMatrixWorld();
-  // Map the [-0.5, +0.5] unit quad expected by `computeCanvasTransform` to the exact
-  // 3D DOM region on the leaf blade (`u: 0.12..0.75` => width `4.756`, `vNorm: 0.15..0.85` => height `3.528`)
-  const offsetX = (node.side > 0.1 ? 0.065 : -0.065) * 7.55;
-  tempDomRegionMatrix.makeScale(4.756, 3.528, 1.0);
-  tempDomRegionMatrix.setPosition(offsetX, 0.0, 0.08);
+
+  // Sample the 3D unfolding leaf surface across the DOM region so the hit-testing
+  // `canvasTransform` dynamically tracks the 3D position, rotation, tilt, and foreshortening
+  // of the text at EVERY step of the unfolding and refolding animation!
+  const span = 0.36;
+  evaluateDomQuadPoint3D(0.0, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pCenter);
+  evaluateDomQuadPoint3D(-span, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pLeft);
+  evaluateDomQuadPoint3D(span, 0.0, unfoldProgress, foldDir, node.side, timeSec, _pRight);
+  evaluateDomQuadPoint3D(0.0, -span, unfoldProgress, foldDir, node.side, timeSec, _pBottom);
+  evaluateDomQuadPoint3D(0.0, span, unfoldProgress, foldDir, node.side, timeSec, _pTop);
+
+  _colX.subVectors(_pRight, _pLeft).multiplyScalar(1.0 / (2.0 * span));
+  _colY.subVectors(_pTop, _pBottom).multiplyScalar(1.0 / (2.0 * span));
+  _colZ.crossVectors(_colX, _colY);
+  if (_colZ.lengthSq() > 1e-6) {
+    _colZ.normalize();
+  } else {
+    _colZ.set(0, 0, 1);
+  }
+
+  _origin
+    .copy(_pCenter)
+    .multiplyScalar(0.5)
+    .addScaledVector(_pLeft, 0.125)
+    .addScaledVector(_pRight, 0.125)
+    .addScaledVector(_pBottom, 0.125)
+    .addScaledVector(_pTop, 0.125);
+
+  tempDomRegionMatrix.makeBasis(_colX, _colY, _colZ);
+  tempDomRegionMatrix.setPosition(_origin.x, _origin.y, _origin.z);
   tempLeafWorldDomMatrix.multiplyMatrices(node.leafMesh.matrixWorld, tempDomRegionMatrix);
 
   tempViewProjMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -3362,14 +3660,13 @@ function syncInvisibleDOMHitLayer(node, unfoldProgress) {
   if (supportsNativeHIC && typeof canvas.updateElementGeometry === 'function') {
     const canvasTransform = computeCanvasTransform(canvas, element, tempMVPMatrix.elements);
     canvas.updateElementGeometry(element, {
-      canvasTransform,
-      preserveHitTestOrder: true
+      canvasTransform
     });
   } else {
     const cw = canvas.clientWidth;
     const ch = canvas.clientHeight;
-    const cardW = element.offsetWidth || 680;
-    const cardH = element.offsetHeight || 420;
+    const cardW = element.offsetWidth || 650;
+    const cardH = element.offsetHeight || 400;
     const tx = (cw - cardW) * 0.5;
     const ty = (ch - cardH) * 0.5;
     element.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0)`;
@@ -3380,11 +3677,8 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
   const timeSec = nowMs * 0.001;
 
   // 1. Smoothly interpolate scroll step (0..7)
-  smoothScrollStep += (targetScrollStep - smoothScrollStep) * 0.11;
-  if (
-    Math.abs(targetScrollStep - Math.round(targetScrollStep)) < 0.001 &&
-    Math.abs(smoothScrollStep - targetScrollStep) < 0.004
-  ) {
+  smoothScrollStep += (targetScrollStep - smoothScrollStep) * 0.14;
+  if (Math.abs(smoothScrollStep - targetScrollStep) < 0.0015) {
     smoothScrollStep = targetScrollStep;
   }
 
@@ -3415,10 +3709,11 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
   // 2. Move Camera & Lighting Rig down the Gnarled DNA Liana Vines
   const camY = -smoothScrollStep * STEP_SPACING_Y;
   const finaleApproach = THREE.MathUtils.smoothstep(smoothScrollStep, 6.0, 7.0);
-  camera.position.x = (pointerNorm.x - 0.5) * 0.62;
-  camera.position.y = camY + (pointerNorm.y - 0.5) * 0.38;
+  camera.position.x = (pointerNorm.x - 0.5) * 0.52;
+  camera.position.y = camY + (pointerNorm.y - 0.5) * 0.32;
   camera.position.z = THREE.MathUtils.lerp(10.6, 11.4, finaleApproach);
   camera.lookAt(0, camY + finaleApproach * 0.4, 0);
+  camera.updateMatrixWorld();
 
   cameraLightRig.position.set(0, camY, 0);
   sunLight.target.position.set(0, camY - 1.5, 0);
@@ -3443,9 +3738,7 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
       leaf6BurnCompletedTime = nowMs;
       document.getElementById('burn-state-intact')?.classList.add('is-hidden');
       document.getElementById('burn-state-remains')?.classList.remove('is-hidden');
-      if (typeof canvas.requestPaint === 'function') {
-        canvas.requestPaint();
-      }
+      requestActiveLeafRepaint();
     }
   } else if (leaf6BurnState === 'burned') {
     firePointLight.intensity = 1.8 + Math.sin(timeSec * 8.0) * 0.6;
@@ -3457,6 +3750,8 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
   fireParticleMat.uniforms.uTime.value = timeSec;
 
   // 4. Update all 8 Sculpted 3D Leaves & Unfurl/Refold their Piecewise Origami Geometry + HTML-in-Canvas Texture
+  let primaryNodeRecord = null;
+
   leafNodes.forEach((node, idx) => {
     const relOffset = idx - smoothScrollStep;
     const absDist = Math.abs(relOffset);
@@ -3487,8 +3782,8 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
       }
 
       node.leafMesh.rotation.order = 'YXZ';
-      node.leafMesh.rotation.y = -side * curl * 0.36 + (pointerNorm.x - 0.5) * 0.12 * unfold;
-      node.leafMesh.rotation.x = relOffset * 0.28 * curl + (pointerNorm.y - 0.5) * 0.09 * unfold;
+      node.leafMesh.rotation.y = -side * curl * 0.36 + (pointerNorm.x - 0.5) * 0.1 * unfold;
+      node.leafMesh.rotation.x = relOffset * 0.28 * curl + (pointerNorm.y - 0.5) * 0.08 * unfold;
       node.leafMesh.rotation.z = -side * curl * 0.18;
 
       const sFactor = THREE.MathUtils.lerp(0.76, idx === 7 ? 0.92 : 1.0, unfold);
@@ -3502,19 +3797,22 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
       node.leafShaderMat.uniforms.uPointer.value.copy(pointerNorm);
 
       // Update the live DOM-to-3D-Leaf Texture & UV hit-regions for the active leaf
-      if (absDist < 0.62) {
+      if (!supportsNativeHIC && absDist < 0.62) {
         renderLiveDOMToLeafCanvas(node, nowMs, idx === activeStepIndex ? hoveredHitId : null);
       }
 
-      // First update DOM element geometry & remove `inert` when visible so `texElementSubImage2D`
-      // captures the live painted element throughout the entire origami unfolding and refolding!
-      syncInvisibleDOMHitLayer(node, unfold);
+      if (idx === activeStepIndex) {
+        primaryNodeRecord = { node, unfold, foldDir };
+      } else {
+        syncInvisibleDOMHitLayer(node, unfold, foldDir, timeSec);
+      }
 
       if (supportsNativeHIC && unfold >= 0.02) {
         if (
           !changedElementsSet ||
           changedElementsSet.has(node.domCard) ||
-          node.textureState.width === 0
+          node.textureState.width === 0 ||
+          (idx === activeStepIndex && forceActiveLeafTextureUpload)
         ) {
           try {
             if (
@@ -3535,9 +3833,20 @@ function updateSceneAndSyncDOM(nowMs, changedElementsSet = null) {
         }
       }
     } else {
-      syncInvisibleDOMHitLayer(node, unfold);
+      syncInvisibleDOMHitLayer(node, unfold, -1.0, timeSec);
     }
   });
+
+  // Update the primary active leaf's geometry LAST so it sits on top of the HTML-in-Canvas hit-test stack!
+  if (primaryNodeRecord) {
+    syncInvisibleDOMHitLayer(
+      primaryNodeRecord.node,
+      primaryNodeRecord.unfold,
+      primaryNodeRecord.foldDir,
+      timeSec
+    );
+  }
+  forceActiveLeafTextureUpload = false;
 
   // 5. Animate Finale 3D Living Vine Text & Bioluminescent Orchid Blossoms
   finaleVineTextGroup.rotation.y = Math.sin(timeSec * 0.65) * 0.06 + (pointerNorm.x - 0.5) * 0.12;
