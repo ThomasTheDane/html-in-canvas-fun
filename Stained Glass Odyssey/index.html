@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    TODO(security): In production HTTP deployment, configure response headers:
+    Content-Security-Policy (with per-request style nonces instead of 'unsafe-inline'),
+    X-Frame-Options: DENY, frame-ancestors 'none', X-Content-Type-Options: nosniff,
+    and Permissions-Policy: camera=(), microphone=(), geolocation=().
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>Stained Glass Odyssey — 3D Shattering Vitrail &amp; HTML-in-Canvas</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" as="image" href="./assets/window-giraffe.jpg" fetchpriority="high">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- Minimalist Cathedral Sanctuary Top Navigation HUD -->
+  <header class="sanctuary-hud" aria-label="Stained Glass Windows Navigation and Telemetry">
+    <div class="hud-brand">
+      <a href="../index.html" class="hud-back-link" title="Back to HTML-in-Canvas Projects">← Gallery</a>
+      <span class="hud-divider" aria-hidden="true"></span>
+      <div class="hud-title-block">
+        <span class="hud-eyebrow">Three.js Extruded SVG Shards • HTML-in-Canvas</span>
+        <strong id="hud-window-title" class="hud-window-title">I. Aurelia Giraffa — Savanna Arch</strong>
+      </div>
+    </div>
+
+    <nav class="hud-window-nav" aria-label="Jump to Stained Glass Window">
+      <button type="button" class="window-nav-btn is-active" data-window-index="0" aria-current="step">
+        <span class="gem-dot gem-amber" aria-hidden="true"></span>
+        <span>I. Giraffe Arch</span>
+      </button>
+      <button type="button" class="window-nav-btn" data-window-index="1">
+        <span class="gem-dot gem-cyan" aria-hidden="true"></span>
+        <span>II. Winter Robin</span>
+      </button>
+      <button type="button" class="window-nav-btn" data-window-index="2">
+        <span class="gem-dot gem-emerald" aria-hidden="true"></span>
+        <span>III. Tree of Life</span>
+      </button>
+    </nav>
+
+    <div class="hud-controls">
+      <span id="hic-mode-pill" class="hic-mode-pill" title="HTML-in-Canvas Pipeline Status">HTML-in-Canvas Ready</span>
+      <a id="svg-inspect-link" class="hud-svg-link" href="./assets/giraffe-shards.svg" target="_blank" rel="noopener noreferrer">
+        View Extracted SVG (483 Shards) ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Bottom Scroll Progress & Shard Explosion Telemetry Bar -->
+  <aside class="sanctuary-footer" aria-label="Scroll Transition Progress">
+    <div class="scroll-progress-shell">
+      <span id="footer-phase-label" class="footer-phase-label">Scroll down to explode the 483 glass shards outward &amp; assemble the next window</span>
+      <div class="scroll-track-bar" aria-hidden="true">
+        <div id="scroll-track-fill" class="scroll-track-fill"></div>
+      </div>
+      <span id="footer-shard-readout" class="footer-shard-readout">Assembled • 0% Scatter</span>
+    </div>
+  </aside>
+
+  <!-- Fixed Full-Viewport 3D Three.js + HTML-in-Canvas Stage -->
+  <div id="stage-viewport" class="stage-viewport">
+    <canvas
+      id="stained-glass-canvas"
+      layoutsubtree
+      content="drawable"
+      aria-label="Interactive 3D stained glass windows with shattering glass shards and embedded HTML user interface"
+    >
+      <!-- ================================================================== -->
+      <!-- WINDOW I (GIRAFFE): LEFT EDITORIAL LOREM IPSUM + CONTROLS PANEL    -->
+      <!-- ================================================================== -->
+      <article id="hic-left-0" class="hic-glass-panel hic-editorial-panel theme-amber" data-window="0" data-side="left" drawable>
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">WINDOW I • 483 SVG GLASS SHARDS</span>
+          <span class="catalog-code">CAT. VIT-01</span>
+        </header>
+
+        <h1 class="panel-display-title">Aurelia Giraffa</h1>
+        <p class="panel-subtitle">Savanna Lancet in Cathedral Amber, Cerulean &amp; Hand-Soldered Lead</p>
+
+        <div class="lorem-prose">
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus vitrum lucis per arcum caeruleum effundit, ubi singulae crustae sucini et auri sub radiis solis vibrant. Drag across any text on this stained glass to highlight it natively.
+          </p>
+          <p>
+            Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </p>
+        </div>
+
+        <div class="glass-metrics-row">
+          <div class="metric-chip">
+            <span class="metric-label">Lead Seams</span>
+            <strong class="metric-value">Watershed SVG</strong>
+          </div>
+          <div class="metric-chip">
+            <span class="metric-label">Refraction</span>
+            <strong class="metric-value">1.54 Crown</strong>
+          </div>
+        </div>
+
+        <div class="panel-action-row">
+          <button type="button" class="btn-glass-action" data-action="ripple" data-window="0">✦ Ripple Glass</button>
+          <button type="button" class="btn-glass-action" data-action="wireframe" data-window="0">◈ SVG Seams</button>
+          <button type="button" class="btn-glass-action" data-action="sunlight" data-window="0">☀ Shift Sun</button>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- WINDOW I (GIRAFFE): RIGHT INTERACTIVE FORM PANEL                   -->
+      <!-- ================================================================== -->
+      <section id="hic-right-0" class="hic-glass-panel hic-form-panel theme-amber" data-window="0" data-side="right" drawable aria-labelledby="form-heading-0">
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">ATELIER COMMISSION</span>
+          <span class="catalog-code">LIVE HTML FORM</span>
+        </header>
+
+        <h2 id="form-heading-0" class="panel-form-title">Bespoke Lancet Inquiry</h2>
+        <p class="form-lorem-note">
+          Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat.
+        </p>
+
+        <form id="glass-form-0" class="stained-form" data-window="0" novalidate>
+          <div class="field-group">
+            <label for="patron-name-0">Patron Full Name</label>
+            <input
+              type="text"
+              id="patron-name-0"
+              name="patron_name"
+              autocomplete="name"
+              required
+              maxlength="80"
+              placeholder="Aurelius Vance"
+            >
+            <div class="error-msg">Please enter your name for the atelier ledger.</div>
+          </div>
+
+          <div class="field-group">
+            <label for="patron-email-0">Studio Dispatch Email</label>
+            <span id="email-hint-0" class="field-hint">Format: name@atelier.org</span>
+            <input
+              type="email"
+              id="patron-email-0"
+              name="patron_email"
+              autocomplete="email"
+              required
+              maxlength="120"
+              aria-describedby="email-hint-0"
+              aria-errormessage="email-err-0"
+              placeholder="patron@vitrail-studio.org"
+            >
+            <div id="email-err-0" class="error-msg">Enter a valid studio email address.</div>
+          </div>
+
+          <div class="field-group">
+            <label for="glass-stock-0">Glass Formulation</label>
+            <select id="glass-stock-0" name="glass_stock" data-live-tint="0">
+              <option value="amber">Cathedral Amber &amp; Cerulean</option>
+              <option value="gold">Opalescent Tiffany Gold</option>
+              <option value="ruby">Dichroic Savanna Ruby</option>
+              <option value="cobalt">Antique Seeded Cobalt</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="commission-notes-0">Lorem Inscription Notes</label>
+            <textarea
+              id="commission-notes-0"
+              name="notes"
+              rows="2"
+              maxlength="180"
+              placeholder="Excepteur sint occaecat cupidatat non proident..."
+            ></textarea>
+          </div>
+
+          <div class="form-button-row">
+            <button type="submit" class="btn-glass-primary">Inscribe Commission</button>
+            <button type="reset" class="btn-glass-secondary">Reset</button>
+          </div>
+
+          <div id="form-status-0" class="form-status-banner" role="status" aria-live="polite">
+            Ready — entries render live onto the 3D stained glass shards.
+          </div>
+        </form>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- WINDOW II (WINTER ROBIN): LEFT EDITORIAL LOREM IPSUM PANEL         -->
+      <!-- ================================================================== -->
+      <article id="hic-left-1" class="hic-glass-panel hic-editorial-panel theme-cyan" data-window="1" data-side="left" drawable>
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">WINDOW II • 494 SVG GLASS SHARDS</span>
+          <span class="catalog-code">CAT. VIT-02</span>
+        </header>
+
+        <h2 class="panel-display-title">Erithacus Brumalis</h2>
+        <p class="panel-subtitle">Solstice Robin in Glacial Teal, Copper Foil &amp; Vermilion Glass</p>
+
+        <div class="lorem-prose">
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore. Sub ramis niveis et baccis rubris, lumen glaciale per tesseras cyaneas limpide frangitur.
+          </p>
+          <p>
+            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.
+          </p>
+        </div>
+
+        <div class="glass-metrics-row">
+          <div class="metric-chip">
+            <span class="metric-label">Copper Foil</span>
+            <strong class="metric-value">494 Polygons</strong>
+          </div>
+          <div class="metric-chip">
+            <span class="metric-label">Transmission</span>
+            <strong class="metric-value">92% Boreal</strong>
+          </div>
+        </div>
+
+        <div class="panel-action-row">
+          <button type="button" class="btn-glass-action" data-action="ripple" data-window="1">❄ Frost Ripple</button>
+          <button type="button" class="btn-glass-action" data-action="wireframe" data-window="1">◈ SVG Seams</button>
+          <button type="button" class="btn-glass-action" data-action="sunlight" data-window="1">🕯 Vesper Light</button>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- WINDOW II (WINTER ROBIN): RIGHT INTERACTIVE FORM PANEL             -->
+      <!-- ================================================================== -->
+      <section id="hic-right-1" class="hic-glass-panel hic-form-panel theme-cyan" data-window="1" data-side="right" drawable aria-labelledby="form-heading-1">
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">SANCTUARY ARCHIVE</span>
+          <span class="catalog-code">LIVE HTML FORM</span>
+        </header>
+
+        <h2 id="form-heading-1" class="panel-form-title">Winter Conservatory Log</h2>
+        <p class="form-lorem-note">
+          Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit.
+        </p>
+
+        <form id="glass-form-1" class="stained-form" data-window="1" novalidate>
+          <div class="field-group">
+            <label for="observer-name-1">Curator / Observer Name</label>
+            <input
+              type="text"
+              id="observer-name-1"
+              name="observer_name"
+              autocomplete="name"
+              required
+              maxlength="80"
+              placeholder="Clara Lindqvist"
+            >
+            <div class="error-msg">Observer name is required to log this window.</div>
+          </div>
+
+          <fieldset class="pill-fieldset">
+            <legend>Backlight Atmosphere</legend>
+            <div class="radio-pill-row">
+              <div class="radio-pill-item">
+                <input type="radio" id="light-frost-1" name="atmosphere" value="frost" class="visually-hidden" checked>
+                <label for="light-frost-1" class="radio-pill-label">Frost Dawn</label>
+              </div>
+              <div class="radio-pill-item">
+                <input type="radio" id="light-zenith-1" name="atmosphere" value="zenith" class="visually-hidden">
+                <label for="light-zenith-1" class="radio-pill-label">Noon Cyan</label>
+              </div>
+              <div class="radio-pill-item">
+                <input type="radio" id="light-hearth-1" name="atmosphere" value="hearth" class="visually-hidden">
+                <label for="light-hearth-1" class="radio-pill-label">Hearth Glow</label>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="field-group">
+            <label for="refraction-select-1">Bevel Dispersion Cut</label>
+            <select id="refraction-select-1" name="dispersion">
+              <option value="crisp">Prismatic Cathedral Cut (1.58)</option>
+              <option value="soft">Frosted Seeded Ripple (1.49)</option>
+              <option value="deep">Heavy Lead Bullion (1.68)</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="field-note-1">Lorem Specimen Annotation</label>
+            <input
+              type="text"
+              id="field-note-1"
+              name="annotation"
+              maxlength="140"
+              placeholder="Nemo enim ipsam voluptatem quia voluptas..."
+            >
+          </div>
+
+          <div class="form-button-row">
+            <button type="submit" class="btn-glass-primary">Record Observation</button>
+            <button type="button" class="btn-glass-secondary" data-jump-window="2">Next Window ↓</button>
+          </div>
+
+          <div id="form-status-1" class="form-status-banner" role="status" aria-live="polite">
+            Select an atmosphere pill or type above to test live WebGL repainting.
+          </div>
+        </form>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- WINDOW III (TREE OF LIFE): LEFT EDITORIAL LOREM IPSUM PANEL        -->
+      <!-- ================================================================== -->
+      <article id="hic-left-2" class="hic-glass-panel hic-editorial-panel theme-emerald" data-window="2" data-side="left" drawable>
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">WINDOW III • 513 SVG GLASS SHARDS</span>
+          <span class="catalog-code">CAT. VIT-03</span>
+        </header>
+
+        <h2 class="panel-display-title">Arbor Vitae</h2>
+        <p class="panel-subtitle">Tiffany Foliate Triptych with Orchard Gold &amp; Passionflower Vines</p>
+
+        <div class="lorem-prose">
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Radices rubrae flumen argenteum complectuntur, dum poma aurea et flores purpurei sub fornice smaragdino splendide efflorescent.
+          </p>
+          <p>
+            Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur.
+          </p>
+        </div>
+
+        <div class="glass-metrics-row">
+          <div class="metric-chip">
+            <span class="metric-label">Mottled Glass</span>
+            <strong class="metric-value">513 Shards</strong>
+          </div>
+          <div class="metric-chip">
+            <span class="metric-label">Style</span>
+            <strong class="metric-value">Arts &amp; Crafts</strong>
+          </div>
+        </div>
+
+        <div class="panel-action-row">
+          <button type="button" class="btn-glass-action" data-action="ripple" data-window="2">🌿 Canopy Wave</button>
+          <button type="button" class="btn-glass-action" data-action="wireframe" data-window="2">◈ SVG Seams</button>
+          <button type="button" class="btn-glass-action" data-jump-window="0">↑ Window I</button>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- WINDOW III (TREE OF LIFE): RIGHT INTERACTIVE FORM PANEL            -->
+      <!-- ================================================================== -->
+      <section id="hic-right-2" class="hic-glass-panel hic-form-panel theme-emerald" data-window="2" data-side="right" drawable aria-labelledby="form-heading-2">
+        <div class="leaded-corner corner-tl" aria-hidden="true"></div>
+        <div class="leaded-corner corner-tr" aria-hidden="true"></div>
+        <header class="panel-header">
+          <span class="shard-badge">GUILD REGISTRY</span>
+          <span class="catalog-code">LIVE HTML FORM</span>
+        </header>
+
+        <h2 id="form-heading-2" class="panel-form-title">Preservation Guild Pledge</h2>
+        <p class="form-lorem-note">
+          Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus.
+        </p>
+
+        <form id="glass-form-2" class="stained-form" data-window="2" novalidate>
+          <div class="field-group">
+            <label for="guild-name-2">Artisan or Patron Name</label>
+            <input
+              type="text"
+              id="guild-name-2"
+              name="guild_name"
+              autocomplete="name"
+              required
+              maxlength="80"
+              placeholder="Louis Comfort"
+            >
+            <div class="error-msg">Please enter your patron or artisan name.</div>
+          </div>
+
+          <div class="field-group">
+            <label for="guild-email-2">Guild Registry Email</label>
+            <span id="email-hint-2" class="field-hint">Format: guild@conservatory.org</span>
+            <input
+              type="email"
+              id="guild-email-2"
+              name="guild_email"
+              autocomplete="email"
+              required
+              maxlength="120"
+              aria-describedby="email-hint-2"
+              aria-errormessage="email-err-2"
+              placeholder="artisan@arbor-guild.org"
+            >
+            <div id="email-err-2" class="error-msg">Enter a valid registry email address.</div>
+          </div>
+
+          <div class="field-group">
+            <label for="motif-select-2">Sponsored Glass Motif</label>
+            <select id="motif-select-2" name="motif">
+              <option value="canopy">Golden Fruit &amp; Emerald Canopy</option>
+              <option value="passionflower">Violet Passionflower Border</option>
+              <option value="river">Cerulean River &amp; Alpine Ridge</option>
+              <option value="roots">Crimson Trunk &amp; Root Medallion</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="guild-motto-2">Lorem Dedication Motto</label>
+            <textarea
+              id="guild-motto-2"
+              name="motto"
+              rows="2"
+              maxlength="180"
+              placeholder="Lux in tenebris per vitrum aeternum..."
+            ></textarea>
+          </div>
+
+          <div class="form-button-row">
+            <button type="submit" class="btn-glass-primary">Seal Guild Pledge</button>
+            <button type="reset" class="btn-glass-secondary">Clear</button>
+          </div>
+
+          <div id="form-status-2" class="form-status-banner" role="status" aria-live="polite">
+            Scroll up or down anytime to shatter &amp; recombine all three stained glass windows.
+          </div>
+        </form>
+      </section>
+    </canvas>
+  </div>
+
+  <!-- Native Document Scroll Spacer Driving the 3-Window Shard Explosion Choreography -->
+  <main id="scroll-driver" class="scroll-driver" aria-hidden="true">
+    <div class="scroll-section" data-step="0"></div>
+    <div class="scroll-section" data-step="1"></div>
+    <div class="scroll-section" data-step="2"></div>
+  </main>
+
+  <script type="module" src="./app.js?v=2"></script>
+</body>
+</html>

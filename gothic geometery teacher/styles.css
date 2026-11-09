@@ -1,0 +1,604 @@
+:root {
+  --nave-obsidian: #05060b;
+  --ivory-pure: #fffdf9;
+  --ivory-soft: rgba(255, 250, 238, 0.94);
+  --ivory-muted: rgba(246, 236, 214, 0.80);
+  --gold-accent: #ffe08a;
+  --gold-rule: rgba(255, 234, 182, 0.34);
+
+  --serif-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --sans-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--nave-obsidian);
+  color: var(--ivory-pure);
+  font-family: var(--sans-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(255, 216, 118, 0.45);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   1. MINIMAL SCROLL PROGRESS HAIRLINE & WHISPER-QUIET SIDE RAIL
+   ========================================================================== */
+
+.scroll-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.scroll-progress-bar {
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #3b9eff, #e82c52, #ffbe3b);
+}
+
+@keyframes scroll-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress-bar {
+      animation: scroll-progress-grow auto linear;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+.window-rail {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rail-dot {
+  appearance: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 240, 200, 0.26);
+  background: rgba(8, 10, 18, 0.72);
+  color: rgba(255, 248, 232, 0.72);
+  font-family: var(--serif-display);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.rail-dot:hover {
+  border-color: rgba(255, 224, 138, 0.75);
+  color: #ffffff;
+}
+
+.rail-dot.is-active {
+  border-color: var(--gold-accent);
+  background: rgba(218, 38, 72, 0.34);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(232, 44, 82, 0.42);
+}
+
+.rail-dot:focus-visible,
+.btn-glass-launch:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   2. FIXED CATHEDRAL VAULT STAGE
+   ========================================================================== */
+
+.stage-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.nave-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 42%, #11162c 0%, #090b16 56%, #040509 100%);
+}
+
+.glass-bloom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.68;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(226, 38, 76, 0.20), transparent 44%),
+    radial-gradient(circle at 42% 62%, rgba(44, 128, 255, 0.18), transparent 42%),
+    radial-gradient(circle at 58% 58%, rgba(255, 168, 36, 0.16), transparent 40%);
+  transition: opacity 0.2s ease;
+}
+
+#cathedral-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 5;
+}
+
+.hic-fallback-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hic-fallback-overlay .hic-glass-stage {
+  opacity: 0.002;
+}
+
+/* ==========================================================================
+   3. DOM UI PAINTED DIRECTLY ONTO SEAMLESS STAINED-GLASS SHARDS (860 × 530)
+   ========================================================================== */
+
+.hic-glass-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 860px;
+  height: 530px;
+  transform-origin: 0 0;
+  background: transparent;
+  color: var(--ivory-pure);
+  user-select: text;
+  -webkit-user-select: text;
+  padding: 10px 14px;
+}
+
+/* Shared Typography Painted onto Stained Glass */
+.glass-eyebrow,
+.glass-kicker {
+  display: inline-block;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-accent);
+  text-shadow: 0 2px 6px rgba(2, 4, 14, 0.98), 0 0 18px rgba(2, 4, 14, 0.92);
+  margin-bottom: 8px;
+}
+
+.hic-glass-stage h1 {
+  margin: 0 0 10px 0;
+  font-family: var(--serif-display);
+  font-size: 2.85rem;
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--ivory-pure);
+  text-shadow: 0 2px 10px rgba(2, 4, 14, 0.98), 0 0 24px rgba(2, 4, 14, 0.92);
+}
+
+.hic-glass-stage h2 {
+  margin: 0 0 9px 0;
+  font-family: var(--serif-display);
+  font-size: 1.95rem;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ivory-pure);
+  text-shadow: 0 2px 10px rgba(2, 4, 14, 0.98), 0 0 22px rgba(2, 4, 14, 0.92);
+}
+
+.hic-glass-stage h3 {
+  margin: 0 0 8px 0;
+  font-family: var(--serif-display);
+  font-size: 1.26rem;
+  font-weight: 600;
+  line-height: 1.18;
+  color: var(--ivory-pure);
+  text-shadow: 0 2px 8px rgba(2, 4, 14, 0.98), 0 0 18px rgba(2, 4, 14, 0.90);
+}
+
+.hic-glass-stage p {
+  margin: 0 0 12px 0;
+  font-size: 0.88rem;
+  line-height: 1.54;
+  color: var(--ivory-soft);
+  text-shadow: 0 2px 7px rgba(2, 4, 14, 0.98), 0 0 16px rgba(2, 4, 14, 0.92);
+}
+
+/* Ultra-Sheer Glass Surfaces that Let the Stained-Glass Flame Shards Glow Through */
+.glass-shard-card {
+  background: rgba(6, 9, 22, 0.16);
+  border: 1px solid rgba(255, 232, 176, 0.44);
+  border-radius: 14px;
+  padding: 18px 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.glass-meta-rule {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--gold-rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--serif-display);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--ivory-muted);
+  text-shadow: 0 1px 6px rgba(2, 4, 14, 0.96);
+}
+
+/* Primary Launch Button Rendered Directly on the Glass Shards */
+.glass-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-glass-launch {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 236, 179, 0.96);
+  background: rgba(255, 251, 240, 0.96);
+  color: #0b0e1b;
+  font-family: var(--sans-ui);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(3, 6, 18, 0.65);
+  transition: background-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.btn-glass-launch:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(255, 220, 128, 0.55);
+}
+
+.btn-glass-launch.btn-glass-large {
+  padding: 13px 28px;
+  font-size: 0.93rem;
+}
+
+.btn-glass-launch.is-preview-clicked {
+  background: #ffe08a;
+  border-color: #fff6d1;
+  color: #120c03;
+}
+
+.glass-subnote {
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  color: var(--ivory-muted);
+  text-shadow: 0 1px 6px rgba(2, 4, 14, 0.96);
+}
+
+/* --------------------------------------------------------------------------
+   STAGE 0 LAYOUT: Hero Header + 3 Translucent Shard Cards
+   -------------------------------------------------------------------------- */
+.stage-layout-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-glass-header {
+  background: rgba(6, 9, 22, 0.15);
+  border: 1px solid rgba(255, 232, 176, 0.44);
+  border-radius: 18px;
+  padding: 20px 32px 20px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.hero-glass-header .hero-copy {
+  max-width: 640px;
+  font-size: 0.92rem;
+  margin-bottom: 14px;
+}
+
+.hero-shard-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  flex: 1;
+}
+
+.hero-shard-cards .glass-shard-card h2 {
+  font-size: 1.24rem;
+  margin-bottom: 6px;
+}
+
+.hero-shard-cards .glass-shard-card p {
+  font-size: 0.81rem;
+  line-height: 1.48;
+}
+
+/* --------------------------------------------------------------------------
+   STAGE 1 LAYOUT: Curriculum Header + 3 Triptych Cards + Bottom CTA
+   -------------------------------------------------------------------------- */
+.stage-layout-triptych {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.section-glass-header {
+  background: rgba(6, 9, 22, 0.15);
+  border: 1px solid rgba(255, 232, 176, 0.42);
+  border-radius: 16px;
+  padding: 14px 26px;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+}
+
+.section-glass-header .section-lead {
+  max-width: 620px;
+  margin: 0 auto;
+  font-size: 0.86rem;
+}
+
+.triptych-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  flex: 1;
+}
+
+.section-bottom-cta {
+  background: rgba(6, 9, 22, 0.18);
+  border: 1px solid rgba(255, 232, 176, 0.44);
+  border-radius: 999px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  align-self: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+}
+
+/* --------------------------------------------------------------------------
+   STAGE 2 LAYOUT: Two-Column Editorial Glass Layout
+   -------------------------------------------------------------------------- */
+.stage-layout-editorial {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.editorial-left-pane,
+.editorial-right-pane {
+  padding: 26px 28px;
+}
+
+.editorial-left-pane .glass-cta-row {
+  justify-content: flex-start;
+  margin-top: auto;
+}
+
+.glass-quote {
+  margin: 6px 0 14px 0;
+  padding: 4px 0 4px 14px;
+  border-left: 2.5px solid var(--gold-accent);
+  font-family: var(--serif-display);
+  font-style: italic;
+  font-size: 1.02rem;
+  line-height: 1.48;
+  color: var(--ivory-pure);
+  text-shadow: 0 2px 8px rgba(2, 4, 14, 0.98), 0 0 18px rgba(2, 4, 14, 0.90);
+}
+
+.glass-feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.glass-feature-list li {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gold-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.glass-feature-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.glass-feature-list strong {
+  font-family: var(--serif-display);
+  font-size: 0.96rem;
+  color: var(--ivory-pure);
+  text-shadow: 0 2px 6px rgba(2, 4, 14, 0.98);
+}
+
+.glass-feature-list span {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ivory-soft);
+  text-shadow: 0 2px 6px rgba(2, 4, 14, 0.98);
+}
+
+/* --------------------------------------------------------------------------
+   STAGE 3 LAYOUT: Sanctuary Portal Finale
+   -------------------------------------------------------------------------- */
+.stage-layout-sanctuary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sanctuary-glass-panel {
+  width: 100%;
+  height: 100%;
+  background: rgba(6, 9, 22, 0.16);
+  border: 1px solid rgba(255, 232, 176, 0.44);
+  border-radius: 20px;
+  padding: 36px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.sanctuary-glass-panel h2 {
+  font-size: 2.45rem;
+  margin-bottom: 14px;
+}
+
+.sanctuary-lead {
+  max-width: 580px;
+  font-size: 0.95rem;
+  line-height: 1.62;
+  margin-bottom: 22px;
+}
+
+.sanctuary-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.sanctuary-pills {
+  width: 100%;
+  max-width: 640px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gold-rule);
+}
+
+.sanctuary-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sanctuary-pill strong {
+  font-family: var(--serif-display);
+  font-size: 1.18rem;
+  color: var(--gold-accent);
+  text-shadow: 0 1px 6px rgba(2, 4, 14, 0.95);
+}
+
+.sanctuary-pill span {
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--ivory-soft);
+}
+
+/* ==========================================================================
+   4. SCROLL HINT & SCROLL HEIGHT TRACK
+   ========================================================================== */
+
+.scroll-hint {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 236, 216, 0.56);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.scroll-track {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  pointer-events: none;
+}
+
+.scroll-chapter {
+  height: 175vh;
+  width: 100%;
+}
+
+.scroll-chapter:last-child {
+  height: 120vh;
+}
+
+@media (max-width: 760px) {
+  .window-rail {
+    right: 10px;
+  }
+}

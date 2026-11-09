@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- TODO(security): style-src 'unsafe-inline' is required because HTML-in-Canvas 3D geometry synchronization updates element.style.transform dynamically when needed; HTTP-only headers such as frame-ancestors and X-Frame-Options must be enforced at the production HTTP server layer. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>Gothic Geometry — Stained-Glass Shard Art &amp; HTML-in-Canvas</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- Decorative top hairline scroll progress bar (modern-web-guidance: scroll-progress-indicator) -->
+  <div class="scroll-progress-track" aria-hidden="true">
+    <div id="scroll-progress-bar" class="scroll-progress-bar"></div>
+  </div>
+
+  <!-- Whisper-quiet side chapter rail -->
+  <nav class="window-rail" aria-label="Window Sections">
+    <button type="button" class="rail-dot is-active" data-stage-target="0" aria-current="step" aria-label="Section I: Sacred Fire Window">
+      <span>I</span>
+    </button>
+    <button type="button" class="rail-dot" data-stage-target="1" aria-label="Section II: Golden Rose Window">
+      <span>II</span>
+    </button>
+    <button type="button" class="rail-dot" data-stage-target="2" aria-label="Section III: Celeste Lancet Window">
+      <span>III</span>
+    </button>
+    <button type="button" class="rail-dot" data-stage-target="3" aria-label="Section IV: Sanctuary Portal Window">
+      <span>IV</span>
+    </button>
+  </nav>
+
+  <!-- Fixed Cathedral Vault & Three.js r187 HTML-in-Canvas Viewport -->
+  <div id="stage-viewport" class="stage-viewport">
+    <!-- Starry nocturnal cathedral vault & warm stone niche surround inspired by reference photo -->
+    <div id="nave-backdrop" class="nave-backdrop" aria-hidden="true">
+      <div id="glass-bloom" class="glass-bloom"></div>
+    </div>
+
+    <!-- Three.js r187 WebGL Canvas with Native HTML-in-Canvas (`layoutsubtree` + `content="drawable"`) -->
+    <canvas
+      id="cathedral-canvas"
+      layoutsubtree
+      content="drawable"
+      aria-label="Gothic stained-glass shard window with live interactive DOM UI painted directly onto the glass shards"
+    >
+
+      <!-- ================================================================== -->
+      <!-- STAGE 0: SACRED FIRE WINDOW — HERO MARKETING UI ON GLASS SHARDS    -->
+      <!-- ================================================================== -->
+      <article id="glass-stage-0" class="hic-glass-stage stage-layout-hero" data-stage="0" drawable>
+        <header class="hero-glass-header">
+          <span class="glass-eyebrow">ARS GEOMETRIAE · COMPASS &amp; STRAIGHTEDGE</span>
+          <h1>Gothic Geometry</h1>
+          <p class="hero-copy">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </p>
+          <div class="glass-cta-row">
+            <button type="button" class="btn-glass-launch" data-launch-app>
+              <span class="btn-launch-label">Launch Teaching App</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <span class="glass-subnote" data-launch-status>Interactive Euclidean studio · Free preview</span>
+          </div>
+        </header>
+
+        <div class="hero-shard-cards">
+          <div class="glass-shard-card">
+            <span class="glass-kicker">I · PROPORTIO</span>
+            <h2>Lorem Ipsum Dolor</h2>
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.
+            </p>
+            <div class="glass-meta-rule">
+              <span>1 : √2</span>
+              <span>Ad Quadratum</span>
+            </div>
+          </div>
+
+          <div class="glass-shard-card">
+            <span class="glass-kicker">II · TRACERY</span>
+            <h2>Consectetur Elit</h2>
+            <p>
+              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint.
+            </p>
+            <div class="glass-meta-rule">
+              <span>XII×</span>
+              <span>Circulus Rosae</span>
+            </div>
+          </div>
+
+          <div class="glass-shard-card">
+            <span class="glass-kicker">III · LUX SACRA</span>
+            <h2>Tempor Incididunt</h2>
+            <p>
+              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+            <div class="glass-meta-rule">
+              <span>Ratio</span>
+              <span>Vesica Piscis</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 1: GOLDEN ROSE WINDOW — CURRICULUM PILLARS ON GLASS SHARDS   -->
+      <!-- ================================================================== -->
+      <article id="glass-stage-1" class="hic-glass-stage stage-layout-triptych" data-stage="1" drawable>
+        <header class="section-glass-header">
+          <span class="glass-eyebrow">LIBER GEOMETRIAE · SACRED PROPORTION</span>
+          <h2>Geometry Woven in Living Glass</h2>
+          <p class="section-lead">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </p>
+        </header>
+
+        <div class="triptych-card-grid">
+          <div class="glass-shard-card">
+            <span class="glass-kicker">LIBER PRIMUS · 01</span>
+            <h3>Vesica &amp; Pointed Arches</h3>
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
+            </p>
+            <div class="glass-meta-rule">
+              <span>Folio I</span>
+              <span>Equilateral Span</span>
+            </div>
+          </div>
+
+          <div class="glass-shard-card">
+            <span class="glass-kicker">LIBER SECUNDUS · 02</span>
+            <h3>Sacred Rose Quadrature</h3>
+            <p>
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo.
+            </p>
+            <div class="glass-meta-rule">
+              <span>Folio II</span>
+              <span>Rotated Squares</span>
+            </div>
+          </div>
+
+          <div class="glass-shard-card">
+            <span class="glass-kicker">LIBER TERTIUS · 03</span>
+            <h3>Foils, Cusps &amp; Oculi</h3>
+            <p>
+              At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas.
+            </p>
+            <div class="glass-meta-rule">
+              <span>Folio III</span>
+              <span>Tangent Circles</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-bottom-cta">
+          <button type="button" class="btn-glass-launch" data-launch-app>
+            <span class="btn-launch-label">Explore Curriculum</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <span class="glass-subnote" data-launch-status>12 interactive compass &amp; straightedge lessons</span>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 2: CELESTE WINDOW — EDITORIAL STORY ON GLASS SHARDS          -->
+      <!-- ================================================================== -->
+      <article id="glass-stage-2" class="hic-glass-stage stage-layout-editorial" data-stage="2" drawable>
+        <div class="editorial-left-pane glass-shard-card">
+          <span class="glass-eyebrow">SCHOLA CARNOTENSIS · METHOD</span>
+          <h2>Pure Geometry, Drawn in Light</h2>
+          <blockquote class="glass-quote">
+            “Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.”
+          </blockquote>
+          <p>
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.
+          </p>
+          <div class="glass-cta-row">
+            <button type="button" class="btn-glass-launch" data-launch-app>
+              <span class="btn-launch-label">Launch Teaching App</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="editorial-right-pane glass-shard-card">
+          <span class="glass-eyebrow">SYLLABUS · THREE PILLARS</span>
+          <ul class="glass-feature-list">
+            <li>
+              <strong>01 · Compass &amp; Unmarked Cord</strong>
+              <span>Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore.</span>
+            </li>
+            <li>
+              <strong>02 · Twelve-Fold Rose Symmetry</strong>
+              <span>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.</span>
+            </li>
+            <li>
+              <strong>03 · Historic Cathedral Elevations</strong>
+              <span>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim.</span>
+            </li>
+          </ul>
+          <div class="glass-meta-rule">
+            <span>Chartres · Bourges · Reims</span>
+            <span>Interactive Epure</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- ================================================================== -->
+      <!-- STAGE 3: SANCTUARY PORTAL — CLOSING CALL TO ACTION ON GLASS SHARDS -->
+      <!-- ================================================================== -->
+      <article id="glass-stage-3" class="hic-glass-stage stage-layout-sanctuary" data-stage="3" drawable>
+        <div class="sanctuary-glass-panel">
+          <span class="glass-eyebrow">ENTER THE ATELIER · ARS SINE SCIENTIA NIHIL EST</span>
+          <h2>Step Onto the Tracing Floor</h2>
+          <p class="sanctuary-lead">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </p>
+          <div class="sanctuary-actions">
+            <button type="button" class="btn-glass-launch btn-glass-large" data-launch-app>
+              <span class="btn-launch-label">Launch Gothic Geometry Teacher</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <span class="glass-subnote" data-launch-status>Lorem ipsum dolor · Browser-based compass &amp; ruler studio</span>
+          </div>
+
+          <div class="sanctuary-pills">
+            <div class="sanctuary-pill">
+              <strong>XII</strong>
+              <span>Cathedral Windows</span>
+            </div>
+            <div class="sanctuary-pill">
+              <strong>100%</strong>
+              <span>Euclidean Constructions</span>
+            </div>
+            <div class="sanctuary-pill">
+              <strong>Live DOM</strong>
+              <span>HTML-in-Canvas Glass</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </canvas>
+  </div>
+
+  <!-- Subtle bottom scroll hint -->
+  <div class="scroll-hint" id="scroll-hint" aria-hidden="true">
+    <span id="scroll-hint-label">Scroll to shatter &amp; transition glass shards</span>
+  </div>
+
+  <!-- Scroll-Height Track Driving the 4 Stained-Glass Window Stages -->
+  <main id="scroll-track" class="scroll-track" aria-label="Marketing Page Scroll Sections">
+    <section class="scroll-chapter" data-chapter="0" aria-label="Section 1: Sacred Fire Window"></section>
+    <section class="scroll-chapter" data-chapter="1" aria-label="Section 2: Golden Rose Window"></section>
+    <section class="scroll-chapter" data-chapter="2" aria-label="Section 3: Celeste Window"></section>
+    <section class="scroll-chapter" data-chapter="3" aria-label="Section 4: Sanctuary Portal"></section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -78,9 +78,8 @@ if (!('popover' in HTMLElement.prototype)) {
 // ============================================================================
 
 const supportsNativeHIC =
-  'content' in HTMLCanvasElement.prototype &&
-  typeof ctx.drawElementImage === 'function' &&
-  typeof canvas.updateElementGeometry === 'function';
+  canvas.content === 'drawable' &&
+  typeof ctx.drawElementImage === 'function';
 
 let domNodeContainer = canvas;
 if (!supportsNativeHIC) {
@@ -100,24 +99,30 @@ if (!supportsNativeHIC) {
 // 2. RESIZE OBSERVER (MANDATORY PER MODERN WEB GUIDANCE)
 // ============================================================================
 
-let viewportCssWidth = 1080;
-let viewportCssHeight = 640;
-let devicePixelScale = window.devicePixelRatio || 1;
+let viewportCssWidth = Math.max(1, canvas.clientWidth || 1080);
+let viewportCssHeight = Math.max(1, canvas.clientHeight || 640);
+let devicePixelScaleX = window.devicePixelRatio || 1;
+let devicePixelScaleY = window.devicePixelRatio || 1;
 
 const resizeObserver = new ResizeObserver(([entry]) => {
   const dpc = entry.devicePixelContentBoxSize;
-  const pixelW = dpc
-    ? dpc[0].inlineSize
-    : Math.round(entry.contentRect.width * window.devicePixelRatio);
-  const pixelH = dpc
-    ? dpc[0].blockSize
-    : Math.round(entry.contentRect.height * window.devicePixelRatio);
+  const cssW = Math.max(1, entry.contentRect.width);
+  const cssH = Math.max(1, entry.contentRect.height);
+  const pixelW = Math.max(
+    1,
+    dpc ? dpc[0].inlineSize : Math.round(cssW * window.devicePixelRatio)
+  );
+  const pixelH = Math.max(
+    1,
+    dpc ? dpc[0].blockSize : Math.round(cssH * window.devicePixelRatio)
+  );
 
-  canvas.width = Math.max(1, pixelW);
-  canvas.height = Math.max(1, pixelH);
-  viewportCssWidth = Math.max(1, entry.contentRect.width);
-  viewportCssHeight = Math.max(1, entry.contentRect.height);
-  devicePixelScale = canvas.width / viewportCssWidth;
+  if (canvas.width !== pixelW) canvas.width = pixelW;
+  if (canvas.height !== pixelH) canvas.height = pixelH;
+  viewportCssWidth = cssW;
+  viewportCssHeight = cssH;
+  devicePixelScaleX = canvas.width / viewportCssWidth;
+  devicePixelScaleY = canvas.height / viewportCssHeight;
 
   if (treeNodes && treeNodes.size > 0) {
     recomputeTreeLayout();
@@ -2328,7 +2333,7 @@ function drawNomaiSpiralCalligraphy(ctx) {
   ctx.restore();
 }
 
-function drawFractalCanvasScene(nowMs) {
+function stepFractalAnimation(nowMs) {
   const now = nowMs || performance.now();
 
   // If the user paused mid-way while scrolling backward in spiral mode, smoothly settle sub-step
@@ -2381,85 +2386,7 @@ function drawFractalCanvasScene(nowMs) {
     }
   });
 
-  // 1. Clear warm paper canvas
-  ctx.save();
-  ctx.setTransform(devicePixelScale, 0, 0, devicePixelScale, 0, 0);
-  ctx.clearRect(0, 0, viewportCssWidth, viewportCssHeight);
-
-  // Apply world-to-screen camera transform
-  ctx.translate(camera.x, camera.y);
-  ctx.scale(camera.zoom, camera.zoom);
-
-  // In Outer Wilds / Nomai Spiral mode, render the swirling calligraphic spiral geometry
-  if (renderMode === 'spiral') {
-    drawNomaiSpiralCalligraphy(ctx);
-  }
-
-  // 2. Draw & Sync HTML-in-Canvas Drawable Token Node Elements
-  treeNodes.forEach((node) => {
-    const el = node.domEl;
-    if (!el || node.visualRole === 'hidden') return;
-
-    const w = el.offsetWidth || getNodeWordWidth(node, 96);
-    const h = el.offsetHeight || 56;
-    const worldLeft = node.renderX;
-    const worldTop = node.renderY - h / 2;
-    const scale = node.renderScale ?? 1.0;
-    const rot = node.renderRotation ?? 0;
-    const hasTransform = Math.abs(scale - 1.0) > 0.005 || Math.abs(rot) > 0.005;
-
-    if (supportsNativeHIC) {
-      try {
-        if (hasTransform) {
-          ctx.save();
-          ctx.translate(worldLeft + w / 2, node.renderY);
-          ctx.rotate(rot);
-          ctx.scale(scale, scale);
-          ctx.drawElementImage(el, -w / 2, -h / 2);
-          ctx.restore();
-        } else {
-          ctx.drawElementImage(el, worldLeft, worldTop);
-        }
-      } catch (_err) {
-        // Element may not have initial paint record yet; retry on next paint
-      }
-
-      let canvasTransform;
-      if (hasTransform) {
-        const cxWorld = worldLeft + w / 2;
-        const cyWorld = node.renderY;
-        canvasTransform = new DOMMatrix()
-          .translate(camera.x + cxWorld * camera.zoom, camera.y + cyWorld * camera.zoom)
-          .rotate((rot * 180) / Math.PI)
-          .scale(camera.zoom * scale, camera.zoom * scale)
-          .translate(-w / 2, -h / 2);
-      } else {
-        canvasTransform = new DOMMatrix()
-          .translate(camera.x + worldLeft * camera.zoom, camera.y + worldTop * camera.zoom)
-          .scale(camera.zoom, camera.zoom);
-      }
-
-      canvas.updateElementGeometry(el, {
-        canvasTransform,
-        preserveHitTestOrder: true
-      });
-    } else {
-      const screenX = camera.x + worldLeft * camera.zoom;
-      const screenY = camera.y + worldTop * camera.zoom;
-      if (hasTransform) {
-        const cxScreen = camera.x + (worldLeft + w / 2) * camera.zoom;
-        const cyScreen = camera.y + node.renderY * camera.zoom;
-        const rotDeg = (rot * 180) / Math.PI;
-        el.style.transform = `translate3d(${cxScreen.toFixed(1)}px, ${cyScreen.toFixed(1)}px, 0) rotate(${rotDeg.toFixed(2)}deg) scale(${(camera.zoom * scale).toFixed(3)}) translate3d(${(-w / 2).toFixed(1)}px, ${(-h / 2).toFixed(1)}px, 0)`;
-      } else {
-        el.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;
-      }
-    }
-  });
-
-  ctx.restore();
-
-  // 3. Position In-Place Loading Spinner when buffering out the next suggested words
+  // Position In-Place Loading Spinner when buffering out the next suggested words
   if (wordBufferSpinnerWrap) {
     const tipNode = treeNodes.get(selectedNodeId);
     const highlightedNode = highlightedOptionId ? treeNodes.get(highlightedOptionId) : null;
@@ -2520,22 +2447,121 @@ function drawFractalCanvasScene(nowMs) {
   }
 }
 
-let paintedThisFrame = false;
+function renderFractalCanvas() {
+  // 1. Clear warm paper canvas
+  ctx.save();
+  ctx.setTransform(devicePixelScaleX, 0, 0, devicePixelScaleY, 0, 0);
+  ctx.clearRect(0, 0, viewportCssWidth, viewportCssHeight);
+
+  // Apply world-to-screen camera transform
+  ctx.translate(camera.x, camera.y);
+  ctx.scale(camera.zoom, camera.zoom);
+
+  // In Outer Wilds / Nomai Spiral mode, render the swirling calligraphic spiral geometry
+  if (renderMode === 'spiral') {
+    drawNomaiSpiralCalligraphy(ctx);
+  }
+
+  // 2. Draw & Sync HTML-in-Canvas Drawable Token Node Elements
+  const visibleNodes = [];
+  treeNodes.forEach((node) => {
+    if (node.domEl && node.visualRole !== 'hidden') {
+      visibleNodes.push(node);
+    }
+  });
+
+  const getLayerOrder = (role) => {
+    switch (role) {
+      case 'spiral-echo':
+        return 1;
+      case 'lookahead-option':
+        return renderMode === 'spiral' ? 6 : 2;
+      case 'root':
+      case 'sentence-word':
+        return 3;
+      case 'next-option':
+        return 4;
+      case 'sentence-tip':
+        return 5;
+      case 'highlighted-option':
+        return 7;
+      default:
+        return 3;
+    }
+  };
+
+  visibleNodes.sort((a, b) => getLayerOrder(a.visualRole) - getLayerOrder(b.visualRole));
+
+  visibleNodes.forEach((node) => {
+    const el = node.domEl;
+    let w = el.offsetWidth || getNodeWordWidth(node, 96);
+    let h = el.offsetHeight || 56;
+    const scale = node.renderScale ?? 1.0;
+    const rot = node.renderRotation ?? 0;
+    const hasTransform = Math.abs(scale - 1.0) > 0.005 || Math.abs(rot) > 0.005;
+
+    if (supportsNativeHIC) {
+      try {
+        if (typeof canvas.getElementImageDefaultSize === 'function') {
+          const defSize = canvas.getElementImageDefaultSize(el);
+          if (defSize && defSize.width > 0 && defSize.height > 0) {
+            // getElementImageDefaultSize returns canvas grid pixels; convert to CSS pixels
+            // because ctx is already scaled by (devicePixelScaleX, devicePixelScaleY).
+            w = defSize.width / devicePixelScaleX;
+            h = defSize.height / devicePixelScaleY;
+          }
+        }
+
+        const worldLeft = node.renderX;
+        const worldTop = node.renderY - h / 2;
+
+        // In a 2D context, passing explicit destination (w, h) in CSS user-space coordinates
+        // prevents the 3-arg overload from applying canvas-grid default size on top of our
+        // DPR transform, while automatically syncing DOM hit-test & accessibility geometry.
+        if (hasTransform) {
+          ctx.save();
+          ctx.translate(worldLeft + w / 2, node.renderY);
+          ctx.rotate(rot);
+          ctx.scale(scale, scale);
+          ctx.drawElementImage(el, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        } else {
+          ctx.drawElementImage(el, worldLeft, worldTop, w, h);
+        }
+      } catch (_err) {
+        // Element may not have initial paint record yet; retry on next paint
+      }
+    } else {
+      const worldLeft = node.renderX;
+      const worldTop = node.renderY - h / 2;
+      const screenX = camera.x + worldLeft * camera.zoom;
+      const screenY = camera.y + worldTop * camera.zoom;
+      if (hasTransform) {
+        const cxScreen = camera.x + (worldLeft + w / 2) * camera.zoom;
+        const cyScreen = camera.y + node.renderY * camera.zoom;
+        const rotDeg = (rot * 180) / Math.PI;
+        el.style.transform = `translate3d(${cxScreen.toFixed(1)}px, ${cyScreen.toFixed(1)}px, 0) rotate(${rotDeg.toFixed(2)}deg) scale(${(camera.zoom * scale).toFixed(3)}) translate3d(${(-w / 2).toFixed(1)}px, ${(-h / 2).toFixed(1)}px, 0)`;
+      } else {
+        el.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) scale(${camera.zoom.toFixed(3)})`;
+      }
+    }
+  });
+
+  ctx.restore();
+}
 
 if (supportsNativeHIC) {
   canvas.onpaint = () => {
-    paintedThisFrame = true;
-    drawFractalCanvasScene(performance.now());
+    renderFractalCanvas();
   };
 }
 
 function animationLoop(nowMs) {
-  paintedThisFrame = false;
+  stepFractalAnimation(nowMs);
   if (supportsNativeHIC && typeof canvas.requestPaint === 'function') {
     canvas.requestPaint();
-  }
-  if (!paintedThisFrame) {
-    drawFractalCanvasScene(nowMs);
+  } else {
+    renderFractalCanvas();
   }
   requestAnimationFrame(animationLoop);
 }
